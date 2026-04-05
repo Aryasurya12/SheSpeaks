@@ -51,7 +51,7 @@ export default function LoginSelection() {
       title: "I am a User",
       description: "Access safety features anonymously. No login required. Report incidents and track status instantly.",
       icon: User,
-      href: "/user/dashboard",
+      href: "/user/login",
       color: "from-[#6D28D9] to-[#EC4899]"
     },
     {

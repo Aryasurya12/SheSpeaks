@@ -23,15 +23,26 @@ export default function ReportForm() {
       localStorage.setItem("anon_id", anonymousId);
     }
 
+    const storedProfile = localStorage.getItem("shespeaks_profile_user");
+    const profile = storedProfile ? JSON.parse(storedProfile) : { isAnonymous: true };
+
+    const payload: any = {
+      ...formData,
+      userId: anonymousId,
+    };
+
+    if (profile.isAnonymous === false) {
+      payload.name = profile.fullName;
+      payload.email = profile.email;
+      payload.phone = profile.mobile;
+    }
+
     // Mock API Call
     try {
       const response = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          userId: anonymousId,
-        }),
+        body: JSON.stringify(payload),
       });
       
       if (response.ok) {

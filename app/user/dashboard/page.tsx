@@ -25,16 +25,27 @@ export default function UserDashboard() {
       localStorage.setItem("anon_id", anonId);
     }
 
+    const storedProfile = localStorage.getItem("shespeaks_profile_user");
+    const profile = storedProfile ? JSON.parse(storedProfile) : { isAnonymous: true };
+
+    const payload: any = {
+      type: "PANIC ALERT",
+      description: "EMERGENCY: User triggered panic button! Immediate response required.",
+      location: "Current Geolocation",
+      userId: anonId,
+    };
+
+    if (profile.isAnonymous === false) {
+      payload.name = profile.fullName;
+      payload.email = profile.email;
+      payload.phone = profile.mobile;
+    }
+
     try {
       await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "PANIC ALERT",
-          description: "EMERGENCY: User triggered panic button! Immediate response required.",
-          location: "Current Geolocation",
-          userId: anonId,
-        }),
+        body: JSON.stringify(payload),
       });
       alert("EMERGENCY SIGNAL SENT! Authorities have been notified with your current location.");
     } catch (error) {
