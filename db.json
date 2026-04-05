@@ -1,0 +1,28 @@
+{
+  "reports": [
+    {
+      "id": "REP-1024",
+      "userId": "anon-uuid-1",
+      "type": "Harassment",
+      "description": "Verbal harassment at the central park entrance.",
+      "location": "Central Park West",
+      "status": "pending",
+      "assignedTo": "Officer Jones",
+      "createdAt": 1775276400000,
+      "lat": 19.076,
+      "lng": 72.8777
+    },
+    {
+      "id": "REP-1025",
+      "userId": "anon-uuid-2",
+      "type": "Suspicious Activity",
+      "description": "Unidentified individual following people near the metro station.",
+      "location": "Downtown Metro",
+      "status": "resolved",
+      "assignedTo": "Officer Smith",
+      "createdAt": 1775265600000,
+      "lat": 19.1136,
+      "lng": 72.8697
+    }
+  ]
+}

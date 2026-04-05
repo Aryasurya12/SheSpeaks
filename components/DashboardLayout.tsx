@@ -128,7 +128,7 @@ export default function DashboardLayout({ children, role, userEmail }: Dashboard
               <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-ping" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
             </button>
-            <div className="flex items-center gap-3 pl-6 border-l border-border">
+            <Link href={`/${role}/profile`} className="flex items-center gap-3 pl-6 border-l border-border hover:opacity-80 transition-opacity">
               <div className="text-right">
                 <p className="text-xs font-bold text-foreground">
                   {role.toUpperCase()} USER
@@ -142,7 +142,7 @@ export default function DashboardLayout({ children, role, userEmail }: Dashboard
                    <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${role}`} alt={role} />
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
         </header>
 
