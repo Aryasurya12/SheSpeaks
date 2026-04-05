@@ -16,10 +16,15 @@ export default function Hero() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative z-10"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4">
             <ShieldCheck className="w-4 h-4" />
             100% Anonymous & Secure
           </div>
+
+          <p className="text-secondary font-black uppercase tracking-[0.3em] text-[10px] mb-8 italic opacity-70 flex items-center gap-3">
+            <span className="w-8 h-[1px] bg-secondary/30"></span>
+            Safety Begins When She Speaks
+          </p>
           
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]">
             Your Voice <br />
