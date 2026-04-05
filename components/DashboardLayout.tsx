@@ -15,7 +15,8 @@ import {
   Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 
 interface SidebarLinkProps {
   href: string;
@@ -24,10 +25,11 @@ interface SidebarLinkProps {
   active?: boolean;
 }
 
-function SidebarLink({ href, icon: Icon, label, active }: SidebarLinkProps) {
+function SidebarLink({ href, icon: Icon, label, active, onClick }: SidebarLinkProps & { onClick?: () => void }) {
   return (
     <Link 
       href={href}
+      onClick={onClick}
       className={cn(
         "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group",
         active 
@@ -48,6 +50,8 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children, role, userEmail }: DashboardLayoutProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const menuItems = {
     user: [
       { href: "/user/dashboard", icon: LayoutDashboard, label: "Home" },
@@ -68,11 +72,27 @@ export default function DashboardLayout({ children, role, userEmail }: Dashboard
 
   return (
     <div className="flex min-h-screen bg-transparent overflow-hidden selection:bg-primary/30 selection:text-primary-foreground">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 bg-[#0B0120]/80 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <motion.aside 
-        initial={{ x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        className="w-72 hidden lg:flex flex-col border-r border-border glass-dark fixed h-full z-40"
+        initial={{ x: -300 }}
+        animate={{ x: mobileMenuOpen ? 0 : (typeof window !== "undefined" && window.innerWidth >= 1024 ? 0 : -300) }}
+        className={cn(
+          "w-72 flex flex-col border-r border-border glass-dark fixed h-full z-50 transition-transform duration-300",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
       >
         <div className="p-8 border-b border-border mb-6">
           <Link href="/" className="flex items-center gap-2 group">
@@ -89,13 +109,13 @@ export default function DashboardLayout({ children, role, userEmail }: Dashboard
           <div className="mb-4">
             <p className="px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30 mb-4">Main Menu</p>
             {menuItems[role].map((item) => (
-              <SidebarLink key={item.href} {...item} />
+              <SidebarLink key={item.href} {...item} onClick={() => setMobileMenuOpen(false)} />
             ))}
           </div>
           
           <div className="mt-auto pt-4 pb-8 border-t border-border">
             <p className="px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30 mb-4">System</p>
-             <SidebarLink href="/settings" icon={Settings} label="Settings" />
+             <SidebarLink href="/settings" icon={Settings} label="Settings" onClick={() => setMobileMenuOpen(false)} />
              <Link 
               href="/" 
               className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-red-500/80 hover:bg-red-500/10 transition-all font-semibold text-sm mt-2"
@@ -110,9 +130,15 @@ export default function DashboardLayout({ children, role, userEmail }: Dashboard
       {/* Main Content Area */}
       <main className="flex-1 lg:ml-72 min-h-screen relative overflow-y-auto">
         {/* Header */}
-        <header className="h-20 glass-dark border-b border-border sticky top-0 z-30 flex items-center justify-between px-8">
+        <header className="h-20 glass-dark border-b border-border sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-4 group">
-            <div className="relative">
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 lg:hidden rounded-xl hover:bg-white/5 active:scale-95 transition-all text-primary"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30 group-focus-within:text-primary transition-colors" />
               <input 
                 type="text" 
@@ -128,8 +154,8 @@ export default function DashboardLayout({ children, role, userEmail }: Dashboard
               <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-ping" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
             </button>
-            <Link href={`/${role}/profile`} className="flex items-center gap-3 pl-6 border-l border-border hover:opacity-80 transition-opacity">
-              <div className="text-right">
+            <Link href={`/${role}/profile`} className="flex items-center gap-3 pl-2 lg:pl-6 border-l border-border hover:opacity-80 transition-opacity">
+              <div className="text-right hidden md:block">
                 <p className="text-xs font-bold text-foreground">
                   {role.toUpperCase()} USER
                 </p>
