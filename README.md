@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🛡️ SheSpeaks
 
-## Getting Started
+**"Safety Begins When She Speaks"**
 
-First, run the development server:
+SheSpeaks is a professional, high-security incident reporting and safety management platform designed to empower individuals with secure, anonymous tools to report harassment and safety concerns. It features a triple-portal architecture (User, Admin, Police) to ensure a seamless end-to-end response lifecycle.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✨ Key Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 👤 User Portal
+- **Anonymous Identity System**: Auto-generated Secure IDs (e.g., `ANON-482092`) ensure reporter privacy.
+- **Privacy Control Toggle**: Instantly switch between professional identity and full anonymity for sensitive reports.
+- **Panic Button**: Trigger immediate emergency signals with one-click geolocation transmission to authorities.
+- **Interactive Safety Map**: View real-time incident heatmaps and safety zones using colorful, high-fidelity mapping.
+- **Secure Report Submission**: Detailed forms for documenting harassment, suspicious activity, or emergencies.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🏛️ Admin Command Center
+- **Live Incident Feed**: Real-time monitoring of system-wide reports.
+- **Dynamic Resource Allocation**: Search and assign reports to specific police units/officers.
+- **System-Wide Analytics**: Track total reports, resolved cases, and active officer statuses.
+- **Functional Case Management**: Update report statuses (Pending → In-Progress → Resolved) with optimistic UI updates.
 
-## Learn More
+### 🚓 Police Enforcement Dashboard
+- **Case Prioritization**: Filtered view showing only assigned incidents for specific units.
+- **Detailed Incident Review**: Access full narrative descriptions and victim information (subject to privacy settings).
+- **Official Documentation**: Export professional, tamper-proof PDF incident reports for official legal processing.
+- **Real-time Status Updates**: Live synchronization with the Admin Command Center.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🎨 Premium Design System
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+SheSpeaks utilizes a **STRICT DARK PURPLE NEON** theme, providing a futuristic, powerful, and safe aesthetic:
+- **Primary Background**: Deep Purple (#0D0225 / #0B0120)
+- **Glassmorphism**: High-end translucent panels with subtle blurs and white/primary borders.
+- **Micro-Animations**: Framer Motion powered transitions and hover states for a premium interactive feel.
+- **Responsive Layout**: Fluid 1280px container alignment across all dashboards (Mobile & Desktop).
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🛠️ Technology Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Vanilla CSS + Tailwind CSS v4 (Stunning Dark Mode)
+- **Icons**: Lucide React
+- **Animations**: Framer Motion
+- **Maps**: React-Leaflet (OpenStreetMap)
+- **Documentation**: jsPDF (Native Report Generation)
+- **Data Persistence**: Local JSON Database with RESTful API routes
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (Latest LTS)
+- npm or yarn
+
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Aryasurya12/SheSpeaks.git
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+4. Access the application on `http://localhost:3000` (or `3001` if configured).
+
+---
+
+## ⚖️ License
+This project is built for social impact and community safety.
+
+*"When she speaks, the system responds."*
