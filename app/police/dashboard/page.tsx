@@ -13,6 +13,7 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import ReportModal from "@/components/ReportModal";
 import { cn } from "@/lib/utils";
 
 interface Report {
@@ -20,13 +21,20 @@ interface Report {
   type: string;
   location: string;
   status: string;
-  description: string;
+  description?: string;
+  assignedTo: string | null;
   createdAt: number;
+  name?: string;
+  email?: string;
+  phone?: string;
+  userId?: string;
 }
 
 export default function PoliceDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/report")
@@ -39,6 +47,7 @@ export default function PoliceDashboard() {
   }, []);
 
   const handleUpdateStatus = async (id: string, status: string) => {
+    setOpenMenuId(null);
     await fetch("/api/report", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -95,7 +104,7 @@ export default function PoliceDashboard() {
                 key={report.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="glass-dark rounded-[2.5rem] border border-white/5 overflow-hidden flex flex-col shadow-2xl relative"
+                className="glass-dark rounded-[2.5rem] border border-white/5 flex flex-col shadow-2xl relative"
               >
                 <div className="absolute top-8 right-8">
                   <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
@@ -150,9 +159,33 @@ export default function PoliceDashboard() {
                           Mark Resolved <CheckCircle className="w-3 h-3" />
                         </button>
                       )}
-                      <button className="p-2.5 glass rounded-xl text-foreground/40 hover:text-white transition-all">
+                    <div className="relative">
+                      <button 
+                        onClick={() => setOpenMenuId(openMenuId === report.id ? null : report.id)}
+                        className="p-2.5 glass rounded-xl text-foreground/40 hover:text-white transition-all relative z-10"
+                      >
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
+                      
+                      {openMenuId === report.id && (
+                        <>
+                          <div className="fixed inset-0 z-10 hidden sm:block" onClick={() => setOpenMenuId(null)} />
+                          <div className="absolute right-0 bottom-12 w-48 glass-dark border border-white/10 rounded-2xl shadow-2xl z-50 pointer-events-auto text-left text-sm py-2">
+                            <button onClick={() => { setSelectedReport(report); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 hover:bg-white/5 font-bold transition-all">
+                              View Report Details
+                            </button>
+                            {report.status !== "in-progress" && report.status !== "resolved" && (
+                              <>
+                                <div className="h-[1px] bg-white/5 my-1" />
+                                <button onClick={() => handleUpdateStatus(report.id, "in-progress")} className="w-full text-left px-4 py-2 hover:bg-white/5 text-emerald-400 transition-all">
+                                  Mark In-Progress
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                    </div>
                 </div>
               </motion.div>
@@ -160,6 +193,7 @@ export default function PoliceDashboard() {
           </div>
         )}
       </div>
+      <ReportModal report={selectedReport} onClose={() => setSelectedReport(null)} />
     </DashboardLayout>
   );
 }
