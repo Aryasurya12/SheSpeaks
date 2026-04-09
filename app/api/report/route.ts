@@ -63,3 +63,16 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: false, message: "Server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ success: false, message: "ID required" }, { status: 400 });
+    
+    await db.deleteReport(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: "Server error" }, { status: 500 });
+  }
+}

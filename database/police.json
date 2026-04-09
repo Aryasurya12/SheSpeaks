@@ -1,0 +1,34 @@
+[
+  {
+    "id": "OFF-001",
+    "name": "Officer Smith",
+    "status": "ON_DUTY",
+    "activeCases": 0,
+    "sector": "Sector 71",
+    "avatar": "OS"
+  },
+  {
+    "id": "OFF-002",
+    "name": "Officer Jones",
+    "status": "OFF_DUTY",
+    "activeCases": 0,
+    "sector": "Sector 12",
+    "avatar": "OJ"
+  },
+  {
+    "id": "OFF-003",
+    "name": "Officer Davis",
+    "status": "ON_DUTY",
+    "activeCases": 0,
+    "sector": "Sector 01",
+    "avatar": "OD"
+  },
+  {
+    "id": "OFF-004",
+    "name": "Officer Wilson",
+    "status": "ON_DUTY",
+    "activeCases": 0,
+    "sector": "Sector 29",
+    "avatar": "OW"
+  }
+]

@@ -33,24 +33,27 @@ interface Report {
 
 export default function AdminDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
+  const [police, setPolice] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/report")
-      .then(res => res.json())
-      .then(data => {
-        setReports(data);
-        setLoading(false);
-      });
+    Promise.all([
+      fetch("/api/report").then(res => res.json()),
+      fetch("/api/police").then(res => res.json())
+    ]).then(([reportsData, policeData]) => {
+      setReports(reportsData || []);
+      setPolice(policeData || []);
+      setLoading(false);
+    });
   }, []);
 
   const stats = [
-    { label: "Total Reports", value: reports.length, icon: FileText, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Active Officers", value: "12", icon: ShieldCheck, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "Resolved Cases", value: reports.filter(r => r.status === "resolved").length, icon: CheckCircle2, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-    { label: "Pending Issues", value: reports.filter(r => r.status === "pending").length, icon: Clock, color: "text-orange-500", bg: "bg-orange-500/10" },
+    { label: "Total Reports", value: reports.length, icon: FileText, color: "text-primary", bg: "bg-primary/10", trend: "+12%" },
+    { label: "Active Officers", value: police.filter(p => p.status === "ON_DUTY").length, icon: ShieldCheck, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "LOGGED" },
+    { label: "Resolved Cases", value: reports.filter(r => r.status === "resolved").length, icon: CheckCircle2, color: "text-indigo-500", bg: "bg-indigo-500/10", trend: "+5%" },
+    { label: "Pending Issues", value: reports.filter(r => r.status === "pending").length, icon: Clock, color: "text-orange-500", bg: "bg-orange-500/10", trend: "ALERT" },
   ];
 
   const handleUpdate = async (id: string, updates: Partial<Report>) => {
@@ -62,6 +65,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ id, ...updates }),
       });
       if (res.ok) {
+        // Optimistic update
         setReports(reports.map(r => r.id === id ? { ...r, ...updates } : r));
       }
     } catch (error) {
@@ -102,11 +106,14 @@ export default function AdminDashboard() {
                 </div>
                 <p className="text-sm font-bold text-foreground/30 uppercase tracking-widest mb-1">{stat.label}</p>
                 <div className="flex items-end gap-3">
-                  <h3 className="text-4xl font-black tracking-tighter">{stat.value}</h3>
-                  <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs mb-1">
-                    <TrendingUp className="w-3 h-3" />
-                    +12%
-                  </div>
+                   <h3 className="text-4xl font-black tracking-tighter">{stat.value}</h3>
+                   <div className={cn(
+                     "flex items-center gap-1 font-bold text-xs mb-1",
+                     stat.trend.startsWith('+') ? "text-emerald-500" : "text-primary/50"
+                   )}>
+                     {stat.trend.startsWith('+') && <TrendingUp className="w-3 h-3" />}
+                     {stat.trend}
+                   </div>
                 </div>
              </motion.div>
            ))}
