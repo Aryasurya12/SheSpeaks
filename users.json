@@ -1,0 +1,24 @@
+[
+  {
+    "email": "Arya@shespeaks.com",
+    "password": "arya123",
+    "fullName": "Arya Suryavanshi",
+    "isAnonymous": false,
+    "id": "USER-4427",
+    "createdAt": 1775717813086
+  },
+  {
+    "fullName": "Anonymous User",
+    "isAnonymous": true,
+    "id": "ANON-2108",
+    "createdAt": 1775720113768
+  },
+  {
+    "email": "arya@shespeaks.com",
+    "password": "arya123",
+    "fullName": "Arya Suryavanshi",
+    "isAnonymous": false,
+    "id": "USER-8680",
+    "createdAt": 1775720565317
+  }
+]

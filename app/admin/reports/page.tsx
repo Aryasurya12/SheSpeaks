@@ -64,7 +64,9 @@ export default function AdminReports() {
                         <td className="p-8 font-mono font-bold text-primary text-sm">{report.id}</td>
                         <td className="p-8">
                            <p className="font-bold tracking-tight text-sm">{report.type}</p>
-                           <p className="text-[10px] text-foreground/30 mt-1 uppercase font-bold">{report.location}</p>
+                           <p className="text-[10px] text-foreground/30 mt-1 uppercase font-bold">
+                             {typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}
+                           </p>
                         </td>
                         <td className="p-8">
                            <select 

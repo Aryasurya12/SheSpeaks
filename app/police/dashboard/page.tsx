@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 interface Report {
   id: string;
   type: string;
-  location: string;
+  location: any;
   status: string;
   description?: string;
   assignedTo: string | null;
@@ -132,7 +132,7 @@ export default function PoliceDashboard() {
                    <div className="flex flex-col gap-4 text-xs font-bold uppercase tracking-widest text-foreground/40">
                       <div className="flex items-center gap-3">
                         <MapPin className="w-4 h-4 text-primary" />
-                        <span>{report.location}</span>
+                         <span>{typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Clock className="w-4 h-4 text-orange-500" />

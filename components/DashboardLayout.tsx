@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Shield, 
@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
 
 interface SidebarLinkProps {
   href: string;
@@ -49,8 +48,23 @@ interface DashboardLayoutProps {
   userEmail?: string;
 }
 
-export default function DashboardLayout({ children, role, userEmail }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, role, userEmail: propUserEmail }: DashboardLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState(propUserEmail);
+
+  useEffect(() => {
+    if (!userEmail) {
+      const stored = localStorage.getItem("shespeaks_user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        setUserEmail(user.id || user.email);
+      }
+    }
+  }, [userEmail]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("shespeaks_user");
+  };
 
   const menuItems = {
     user: [
@@ -108,7 +122,7 @@ export default function DashboardLayout({ children, role, userEmail }: Dashboard
         <nav className="flex-1 px-4 space-y-2">
           <div className="mb-4">
             <p className="px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30 mb-4">Main Menu</p>
-            {menuItems[role].map((item) => (
+            {menuItems[role].map((item: any) => (
               <SidebarLink key={item.href} {...item} onClick={() => setMobileMenuOpen(false)} />
             ))}
           </div>
@@ -118,6 +132,7 @@ export default function DashboardLayout({ children, role, userEmail }: Dashboard
              <SidebarLink href="/settings" icon={Settings} label="Settings" onClick={() => setMobileMenuOpen(false)} />
              <Link 
               href="/" 
+              onClick={handleLogout}
               className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-red-500/80 hover:bg-red-500/10 transition-all font-semibold text-sm mt-2"
             >
               <LogOut className="w-5 h-5" />

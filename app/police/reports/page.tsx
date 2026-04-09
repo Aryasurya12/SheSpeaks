@@ -72,7 +72,7 @@ export default function PoliceReports() {
                       <div className="flex gap-8 text-[11px] font-bold uppercase tracking-widest text-foreground/40">
                          <div className="flex items-center gap-3">
                             <MapPin className="w-4 h-4 text-secondary" />
-                            <span>{report.location}</span>
+                            <span>{typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}</span>
                          </div>
                          <div className="flex items-center gap-3">
                             <Clock className="w-4 h-4 text-orange-500" />

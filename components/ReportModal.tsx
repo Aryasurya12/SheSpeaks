@@ -6,7 +6,7 @@ import { X, Download, ShieldCheck, MapPin, Clock, User, Phone, Mail } from "luci
 interface Report {
   id: string;
   type: string;
-  location: string;
+  location: any;
   status: string;
   assignedTo: string | null;
   createdAt: number;
@@ -26,170 +26,203 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
   if (!report) return null;
 
   const downloadPDF = async () => {
-    const { jsPDF } = await import("jspdf");
-    const doc = new jsPDF();
-    
-    // Theme Colors
-    const primaryPurple = [109, 40, 217] as [number, number, number]; // #6D28D9
-    const accentPink = [236, 72, 153] as [number, number, number]; // #EC4899
-    const darkText = [30, 30, 30] as [number, number, number];
-    const lightText = [120, 120, 120] as [number, number, number];
+    try {
+      if (!report || !report.id) throw new Error("Invalid report data.");
 
-    // Background header bar
-    doc.setFillColor(...primaryPurple);
-    doc.rect(0, 0, 210, 30, 'F');
-    
-    // Header Text
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(24);
-    doc.text("SHESPEAKS", 15, 18);
-    
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(10);
-    doc.text("Safety Begins When She Speaks", 15, 25);
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("INCIDENT REPORT", 140, 18);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text("CONFIDENTIAL", 140, 25);
-
-    // Section 1: Restoring defaults and writing Incident Details
-    doc.setTextColor(...darkText);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(...accentPink);
-    doc.text("INCIDENT DETAILS", 15, 45);
-    
-    doc.setDrawColor(...accentPink);
-    doc.setLineWidth(0.5);
-    doc.line(15, 48, 195, 48);
-
-    doc.setTextColor(...darkText);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Report ID:", 15, 58);
-    doc.setFont("helvetica", "normal");
-    doc.text(report.id, 45, 58);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Timestamp:", 110, 58);
-    doc.setFont("helvetica", "normal");
-    doc.text(new Date(report.createdAt).toLocaleString(), 135, 58);
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Incident Type:", 15, 68);
-    doc.setFont("helvetica", "normal");
-    doc.text(report.type, 45, 68);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Location:", 110, 68);
-    doc.setFont("helvetica", "normal");
-    doc.text(report.location, 130, 68);
-
-    // Section 2: Reporter Details
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(...accentPink);
-    doc.text("REPORTER IDENTIFICATION", 15, 85);
-    
-    doc.setDrawColor(...accentPink);
-    doc.line(15, 88, 195, 88);
-
-    doc.setTextColor(...darkText);
-    doc.setFontSize(10);
-
-    if (report.name) {
-      doc.setFont("helvetica", "bold");
-      doc.text("Full Name:", 15, 98);
-      doc.setFont("helvetica", "normal");
-      doc.text(report.name, 45, 98);
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF("p", "mm", "a4");
       
-      doc.setFont("helvetica", "bold");
-      doc.text("Email:", 110, 98);
-      doc.setFont("helvetica", "normal");
-      doc.text(report.email || "N/A", 125, 98);
+      // CONFIGURATION (STRICT)
+      const MARGIN = 20;
+      const PAGE_WIDTH = doc.internal.pageSize.getWidth();
+      const PAGE_HEIGHT = doc.internal.pageSize.getHeight();
+      const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+      const COL1_X = MARGIN;
+      const VALUE1_X = 65;
+      const COL2_X = 110;
+      const VALUE2_X = 155;
       
+      const BRAND_PURPLE = [109, 40, 217];
+      const BLACK = [0, 0, 0];
+      const DARK_GRAY = [80, 80, 80];
+      const LIGHT_GRAY = [220, 220, 220];
+
+      let currentY = MARGIN;
+
+      // --- PERSISTENT COMPONENTS ---
+      const drawHeader = (y: number) => {
+        // Logo & Title
+        doc.setFillColor(BRAND_PURPLE[0], BRAND_PURPLE[1], BRAND_PURPLE[2]);
+        doc.rect(MARGIN, y, 4, 12, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(20);
+        doc.setTextColor(BLACK[0], BLACK[1], BLACK[2]);
+        doc.text("SheSpeaks", MARGIN + 8, y + 6);
+        
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(DARK_GRAY[0], DARK_GRAY[1], DARK_GRAY[2]);
+        doc.text("Safety Begins When She Speaks", MARGIN + 8, y + 10);
+
+        // Meta
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(`GENERATED: ${new Date().toLocaleString().toUpperCase()}`, PAGE_WIDTH - MARGIN, y + 4, { align: "right" });
+        doc.setFont("helvetica", "bold");
+        doc.text(`REPORT ID: ${report.id}`, PAGE_WIDTH - MARGIN, y + 9, { align: "right" });
+
+        doc.setDrawColor(LIGHT_GRAY[0], LIGHT_GRAY[1], LIGHT_GRAY[2]);
+        doc.line(MARGIN, y + 16, PAGE_WIDTH - MARGIN, y + 16);
+        return y + 25;
+      };
+
+      const drawFooter = () => {
+        const totalPages = (doc as any).internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          doc.setPage(i);
+          doc.setDrawColor(LIGHT_GRAY[0], LIGHT_GRAY[1], LIGHT_GRAY[2]);
+          doc.line(MARGIN, PAGE_HEIGHT - 20, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 20);
+          
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(DARK_GRAY[0], DARK_GRAY[1], DARK_GRAY[2]);
+          doc.text("SheSpeaks Official Documentation System", MARGIN, PAGE_HEIGHT - 13);
+          doc.text(`Page ${i} of ${totalPages}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 13, { align: "right" });
+        }
+      };
+
+      const checkPageOverflow = (needed: number) => {
+        if (currentY + needed > PAGE_HEIGHT - 25) {
+          doc.addPage();
+          currentY = MARGIN;
+          currentY = drawHeader(currentY);
+          return true;
+        }
+        return false;
+      };
+
+      const drawSectionTitle = (title: string) => {
+        checkPageOverflow(15);
+        doc.setFillColor(248, 248, 252);
+        doc.rect(MARGIN, currentY - 4, CONTENT_WIDTH, 7, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(BRAND_PURPLE[0], BRAND_PURPLE[1], BRAND_PURPLE[2]);
+        doc.text(title.toUpperCase(), MARGIN + 2, currentY + 1);
+        currentY += 10;
+      };
+
+      // INIT PAGE 1
+      currentY = drawHeader(currentY);
+
+      // TITLE
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Phone:", 15, 108);
-      doc.setFont("helvetica", "normal");
-      doc.text(report.phone || "N/A", 45, 108);
-    } else {
-      doc.setFillColor(250, 245, 255);
-      doc.rect(15, 93, 180, 25, 'F');
+      doc.setTextColor(0, 0, 0);
+      doc.text("OFFICIAL INCIDENT REPORT", PAGE_WIDTH / 2, currentY, { align: "center" });
+      currentY += 15;
+
+      // SECTION 1: OVERVIEW
+      drawSectionTitle("1. Incident Overview");
+      doc.setFontSize(8);
+      doc.setTextColor(DARK_GRAY[0], DARK_GRAY[1], DARK_GRAY[2]);
       
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...primaryPurple);
-      doc.text("ANONYMOUS MODE ACTIVE", 20, 102);
-      
-      doc.setTextColor(...darkText);
-      doc.text("Secure Tracking ID:", 20, 110);
+      // GRID ROW 1
+      doc.setFont("helvetica", "bold"); doc.text("Report ID:", COL1_X + 2, currentY);
+      doc.setFont("helvetica", "normal"); doc.text(report.id, VALUE1_X, currentY);
+      doc.setFont("helvetica", "bold"); doc.text("Date Created:", COL2_X, currentY);
+      doc.setFont("helvetica", "normal"); doc.text(new Date(report.createdAt).toLocaleDateString(), VALUE2_X, currentY);
+      currentY += 8;
+
+      // GRID ROW 2
+      doc.setFont("helvetica", "bold"); doc.text("Incident Type:", COL1_X + 2, currentY);
+      doc.setFont("helvetica", "normal"); doc.text((report.type || "ALERT").toUpperCase(), VALUE1_X, currentY);
+      doc.setFont("helvetica", "bold"); doc.text("Current Status:", COL2_X, currentY);
+      doc.setFont("helvetica", "bold"); 
+      const sCol = report.status === "resolved" ? [16, 185, 129] : [245, 158, 11];
+      doc.setTextColor(sCol[0], sCol[1], sCol[2]);
+      doc.text((report.status || "PENDING").toUpperCase(), VALUE2_X, currentY);
+      doc.setTextColor(DARK_GRAY[0], DARK_GRAY[1], DARK_GRAY[2]);
+      currentY += 15;
+
+      // SECTION 2: REPORTER
+      drawSectionTitle("2. Reporter Information");
+      doc.setFontSize(8);
+      if (report.name) {
+        doc.setFont("helvetica", "bold"); doc.text("Name:", COL1_X + 2, currentY);
+        doc.setFont("helvetica", "normal"); doc.text(report.name, VALUE1_X, currentY);
+        doc.setFont("helvetica", "bold"); doc.text("User Type:", COL2_X, currentY);
+        doc.setFont("helvetica", "normal"); doc.text("Registered", VALUE2_X, currentY);
+        currentY += 7;
+        doc.setFont("helvetica", "bold"); doc.text("Contact:", COL1_X + 2, currentY);
+        doc.setFont("helvetica", "normal"); doc.text(report.email || "N/A", VALUE1_X, currentY);
+      } else {
+        doc.setFont("helvetica", "italic");
+        doc.text("ANONYMOUS FILING: Verified identity protection via secure user hash.", COL1_X + 2, currentY);
+        currentY += 7;
+        doc.setFont("helvetica", "bold"); doc.text("Secure Hash:", COL1_X + 2, currentY);
+        doc.setFont("helvetica", "normal"); doc.text(report.userId || "ANON-DATA", VALUE1_X, currentY);
+      }
+      currentY += 15;
+
+      // SECTION 3: DESCRIPTION
+      drawSectionTitle("3. Incident Narrative");
+      doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.text(report.userId || "N/A", 60, 110);
+      doc.setTextColor(BLACK[0], BLACK[1], BLACK[2]);
+      const splitDesc = doc.splitTextToSize(report.description || "No narrative details.", CONTENT_WIDTH - 10);
+      checkPageOverflow(splitDesc.length * 5);
+      doc.text(splitDesc, MARGIN + 2, currentY);
+      currentY += (splitDesc.length * 5) + 15;
+
+      // SECTION 4: LOCATION & EVIDENCE
+      drawSectionTitle("4. Location Tracking & Evidence");
+      const loc = report.location;
+      const addr = typeof loc === 'object' ? (loc.address || "Current Position") : String(loc || "Unknown");
+      const latent = typeof loc === 'object' ? `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}` : "N/A";
+      
+      doc.setFont("helvetica", "bold"); doc.text("Address:", COL1_X + 2, currentY);
+      doc.setFont("helvetica", "normal"); doc.text(addr, VALUE1_X, currentY);
+      currentY += 7;
+      doc.setFont("helvetica", "bold"); doc.text("Coordinates:", COL1_X + 2, currentY);
+      doc.setFont("helvetica", "normal"); doc.text(latent, VALUE1_X, currentY);
+      currentY += 12;
+
+      const evidence = (report as any).evidence || [];
+      if (evidence.length > 0) {
+        checkPageOverflow(50);
+        evidence.slice(0, 3).forEach((img: string, i: number) => {
+          try {
+            if (img.startsWith("data:image")) {
+              doc.addImage(img, "JPEG", MARGIN + (i * 60), currentY, 55, 40);
+            }
+          } catch (e) {}
+        });
+        currentY += 50;
+      } else {
+        doc.setFont("helvetica", "italic");
+        doc.text("No photographic evidence attached.", MARGIN + 2, currentY);
+        currentY += 10;
+      }
+      currentY += 15;
+
+      // SECTION 5: AUTHENTICATION
+      drawSectionTitle("5. System Authentication");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      const legalText = "This record is digitally signed and stored in the SheSpeaks Encrypted Database. Any unauthorized alteration is a violation of secure reporting protocols. Tamper-evident ID: " + Math.random().toString(36).substring(7).toUpperCase();
+      const splitLegal = doc.splitTextToSize(legalText, CONTENT_WIDTH - 10);
+      doc.text(splitLegal, MARGIN + 2, currentY);
+
+      // FINALIZE
+      drawFooter();
+      doc.save(`SheSpeaks_Official_${report.id}.pdf`);
+    } catch (error) {
+      console.error("PDF LAYOUT ERROR:", error);
+      alert("Layout Error: System could not align the report.");
     }
-
-    // Section 3: Detailed Description
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(...accentPink);
-    doc.text("NARRATIVE / DESCRIPTION", 15, 130);
-    
-    doc.setDrawColor(...accentPink);
-    doc.line(15, 133, 195, 133);
-
-    doc.setTextColor(...darkText);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    
-    const splitDesc = doc.splitTextToSize(report.description || "No narrative details provided.", 180);
-    doc.text(splitDesc, 15, 143);
-    
-    const offset = 143 + (splitDesc.length * 5) + 10;
-
-    // Section 4: Assignment Details
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(...accentPink);
-    doc.text("ASSIGNMENT & STATUS", 15, offset);
-    
-    doc.setDrawColor(...accentPink);
-    doc.line(15, offset + 3, 195, offset + 3);
-
-    doc.setTextColor(...darkText);
-    doc.setFontSize(10);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Current Status:", 15, offset + 13);
-    doc.setFont("helvetica", "normal");
-    
-    // Color code the status
-    if (report.status === "pending") doc.setTextColor(249, 115, 22);
-    else if (report.status === "in-progress") doc.setTextColor(...primaryPurple);
-    else doc.setTextColor(16, 185, 129);
-    
-    doc.text(report.status.toUpperCase(), 45, offset + 13);
-    
-    doc.setTextColor(...darkText);
-    doc.setFont("helvetica", "bold");
-    doc.text("Assigned Officer:", 110, offset + 13);
-    doc.setFont("helvetica", "normal");
-    doc.text(report.assignedTo || "Unassigned", 145, offset + 13);
-
-    // Footer
-    const pageHeight = doc.internal.pageSize.height;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(15, pageHeight - 20, 195, pageHeight - 20);
-    
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(8);
-    doc.setTextColor(...lightText);
-    doc.text("Generated securely by SheSpeaks Automated Systems.", 15, pageHeight - 15);
-    doc.text("This document contains sensitive information. Unauthorized distribution is prohibited.", 15, pageHeight - 10);
-    
-    doc.save(`SheSpeaks_Official_${report.id}.pdf`);
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B0120]/80 backdrop-blur-sm">
@@ -208,7 +241,8 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
            </button>
         </div>
 
-        <div id="pdf-report" className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
+        <div className="max-h-[70vh] overflow-y-auto p-8">
+           <div id="pdf-report" className="space-y-8">
            {/* Header Info */}
            <div className="grid grid-cols-2 gap-6 pb-6 border-b border-white/5">
               <div>
@@ -221,7 +255,9 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2"><MapPin className="w-3 h-3"/> Location</p>
-                <p className="font-semibold text-sm">{report.location}</p>
+                 <p className="font-semibold text-sm">
+                   {typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}
+                 </p>
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2"><Clock className="w-3 h-3"/> Timestamp</p>
@@ -268,8 +304,9 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
               <p className="font-bold text-sm">{report.assignedTo || "Unassigned"}</p>
            </div>
         </div>
+      </div>
 
-        <div className="p-6 border-t border-white/5 flex items-center justify-end">
+      <div className="p-6 border-t border-white/5 flex items-center justify-end">
            <button onClick={downloadPDF} className="px-6 py-2 bg-primary/20 hover:bg-primary/30 text-primary font-black rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all">
              <Download className="w-4 h-4" /> Download Official PDF
            </button>

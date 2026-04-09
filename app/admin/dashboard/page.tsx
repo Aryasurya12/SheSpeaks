@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 interface Report {
   id: string;
   type: string;
-  location: string;
+  location: any; // Support both legacy string and new object structure
   status: string;
   assignedTo: string | null;
   createdAt: number;
@@ -154,7 +154,9 @@ export default function AdminDashboard() {
                         <span className="font-bold text-sm tracking-tight">{report.type}</span>
                       </td>
                       <td className="p-6">
-                        <span className="text-xs font-semibold text-foreground/50">{report.location}</span>
+                        <span className="text-xs font-semibold text-foreground/50">
+                          {typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}
+                        </span>
                       </td>
                       <td className="p-6">
                         <span className={cn(

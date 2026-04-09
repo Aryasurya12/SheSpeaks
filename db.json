@@ -1,6 +1,48 @@
 {
   "reports": [
     {
+      "type": "assault",
+      "description": "A man was following mee",
+      "location": "Vashi",
+      "userId": "ANON-551839",
+      "name": "Trisha",
+      "email": "arya@gmail.com",
+      "phone": "9321535039",
+      "id": "REP-2822",
+      "assignedTo": "Officer Smith",
+      "createdAt": 1775715828114,
+      "lat": 19.086056754013033,
+      "lng": 72.84066355180781
+    },
+    {
+      "type": "PANIC ALERT",
+      "description": "EMERGENCY: User triggered panic button! Immediate response required.",
+      "location": "Current Geolocation",
+      "userId": "ANON-551839",
+      "name": "Trisha",
+      "email": "arya@gmail.com",
+      "phone": "9321535039",
+      "id": "REP-5391",
+      "assignedTo": "Officer Jones",
+      "createdAt": 1775715793178,
+      "lat": 19.02628424804686,
+      "lng": 72.82832448372062
+    },
+    {
+      "type": "PANIC ALERT",
+      "description": "EMERGENCY: User triggered panic button! Immediate response required.",
+      "location": "Current Geolocation",
+      "userId": "ANON-551839",
+      "name": "Trisha",
+      "email": "arya@gmail.com",
+      "phone": "9321535039",
+      "id": "REP-3915",
+      "assignedTo": "Officer Smith",
+      "createdAt": 1775715791296,
+      "lat": 19.026065715178376,
+      "lng": 72.83082935536619
+    },
+    {
       "type": "harassment",
       "description": "dytugybhkn",
       "location": "Wadala ",
@@ -9,7 +51,7 @@
       "email": "arya@gmail.com",
       "phone": "9321535039",
       "id": "REP-3925",
-      "status": "in-progress",
+      "status": "resolved",
       "assignedTo": "Officer Smith",
       "createdAt": 1775400314892,
       "lat": 19.08724910576136,
