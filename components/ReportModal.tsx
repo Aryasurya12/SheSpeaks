@@ -191,13 +191,29 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       const evidence = (report as any).evidence || [];
       if (evidence.length > 0) {
         checkPageOverflow(50);
-        evidence.slice(0, 3).forEach((img: string, i: number) => {
+        for (let i = 0; i < Math.min(evidence.length, 3); i++) {
+          const img = evidence[i];
           try {
-            if (img.startsWith("data:image")) {
-              doc.addImage(img, "JPEG", MARGIN + (i * 60), currentY, 55, 40);
+            let imgData = img;
+            // If it's a Supabase URL, fetch it and convert to Base64 since jsPDF needs base64
+            if (img.startsWith("http")) {
+              const response = await fetch(img);
+              const blob = await response.blob();
+              imgData = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+              });
             }
-          } catch (e) {}
-        });
+            if (imgData.startsWith("data:image")) {
+              doc.addImage(imgData, "JPEG", MARGIN + (i * 60), currentY, 55, 40);
+            }
+          } catch (e) {
+            console.error("Could not inject image into PDF:", e);
+            doc.setFontSize(8);
+            doc.text("[External evidence link hidden for security]", MARGIN + (i * 60), currentY + 10);
+          }
+        }
         currentY += 50;
       } else {
         doc.setFont("helvetica", "italic");

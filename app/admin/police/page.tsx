@@ -13,6 +13,14 @@ export default function ManagePolice() {
   const [officerReports, setOfficerReports] = useState<any[]>([]);
   const [showLogs, setShowLogs] = useState(false);
 
+  // New Officer Registration State
+  const [showRegister, setShowRegister] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [registerError, setRegisterError] = useState("");
+  const [registerForm, setRegisterForm] = useState({
+    name: "", email: "", password: "", sector: ""
+  });
+
   const fetchPolice = () => {
     fetch("/api/police")
       .then(res => res.json())
@@ -41,8 +49,35 @@ export default function ManagePolice() {
     setShowLogs(true);
     const res = await fetch("/api/report");
     const all = await res.json();
-    const assigned = all.filter((r: any) => r.assignedTo === officer.name);
+    const assigned = all.filter((r: any) => r.assignedTo === officer.id);
     setOfficerReports(assigned);
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegistering(true);
+    setRegisterError("");
+
+    try {
+      const res = await fetch("/api/police", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(registerForm)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setShowRegister(false);
+        setRegisterForm({ name: "", email: "", password: "", sector: "" });
+        fetchPolice(); // Refresh list
+      } else {
+        setRegisterError(data.message || "Failed to register officer");
+      }
+    } catch (err) {
+      setRegisterError("Server connection failed");
+    } finally {
+      setRegistering(false);
+    }
   };
 
   return (
@@ -59,7 +94,10 @@ export default function ManagePolice() {
               <p className="text-foreground/50 font-bold uppercase tracking-widest text-[10px] italic">Active Police Personnel Management • Security Clearances • Assignment Logs</p>
             </div>
             
-            <button className="w-full md:w-auto px-10 py-5 bg-emerald-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-[2rem] shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all flex items-center justify-center gap-4">
+            <button 
+              onClick={() => setShowRegister(true)}
+              className="w-full md:w-auto px-10 py-5 bg-emerald-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-[2rem] shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all flex items-center justify-center gap-4"
+            >
                Register New Officer <Plus className="w-5 h-5" />
             </button>
           </div>
@@ -153,14 +191,14 @@ export default function ManagePolice() {
                      </button>
                   </div>
 
-                  <div className="space-y-4">
+                   <div className="space-y-4">
                     {officerReports.length === 0 ? (
                       <div className="p-10 text-center text-foreground/30 font-bold uppercase tracking-widest text-xs border-2 border-dashed border-white/5 rounded-3xl">No cases assigned to this unit.</div>
                     ) : officerReports.map(report => (
                       <div key={report.id} className="p-6 rounded-3xl bg-white/5 border border-white/5 flex items-center justify-between group hover:border-emerald-500/20 transition-all">
                          <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-mono font-bold text-xs ring-2 ring-emerald-500/20 ring-offset-4 ring-offset-[#0B0120]">
-                               {report.id.split('-')[1]}
+                               {report.id.split('-')[1] || report.id.substring(0, 4)}
                             </div>
                             <div>
                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60 ">{report.type}</p>
@@ -176,6 +214,91 @@ export default function ManagePolice() {
                   </div>
               </motion.div>
            </div>
+         )}
+
+         {/* Register Officer Modal */}
+         {showRegister && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+               <motion.div 
+                 initial={{ opacity: 0, scale: 0.95 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 exit={{ opacity: 0, scale: 0.95 }}
+                 className="w-full max-w-md glass-dark border border-white/10 rounded-[3rem] p-10 space-y-8 relative overflow-hidden"
+               >
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
+                  
+                  <div className="flex items-center justify-between border-b border-white/5 pb-8 relative z-10">
+                     <div>
+                        <h2 className="text-3xl font-black uppercase tracking-tighter">New <span className="text-emerald-500 italic">Officer</span></h2>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 mt-1">Deploy Personnel to Grid</p>
+                     </div>
+                     <button onClick={() => setShowRegister(false)} className="p-3 bg-white/5 hover:bg-red-500/20 hover:text-red-500 rounded-2xl transition-all">
+                        <X className="w-6 h-6" />
+                     </button>
+                  </div>
+
+                  {registerError && (
+                    <div className="p-4 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-xs font-bold text-center">
+                      {registerError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleRegister} className="space-y-4 relative z-10">
+                     <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-4">Full Name</label>
+                       <input 
+                         required
+                         type="text" 
+                         value={registerForm.name}
+                         onChange={e => setRegisterForm({...registerForm, name: e.target.value})}
+                         className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl px-6 text-sm focus:border-emerald-500 outline-none transition-all placeholder:text-white/10"
+                         placeholder="Officer Name"
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-4">Official Email</label>
+                       <input 
+                         required
+                         type="email" 
+                         value={registerForm.email}
+                         onChange={e => setRegisterForm({...registerForm, email: e.target.value})}
+                         className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl px-6 text-sm focus:border-emerald-500 outline-none transition-all placeholder:text-white/10"
+                         placeholder="secure@shespeaks.com"
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-4">Temporary Password</label>
+                       <input 
+                         required
+                         type="password" 
+                         value={registerForm.password}
+                         onChange={e => setRegisterForm({...registerForm, password: e.target.value})}
+                         className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl px-6 text-sm focus:border-emerald-500 outline-none transition-all placeholder:text-white/10"
+                         placeholder="••••••••"
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-4">Patrol Sector</label>
+                       <input 
+                         required
+                         type="text" 
+                         value={registerForm.sector}
+                         onChange={e => setRegisterForm({...registerForm, sector: e.target.value})}
+                         className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl px-6 text-sm focus:border-emerald-500 outline-none transition-all placeholder:text-white/10"
+                         placeholder="e.g. Downtown Sector A"
+                       />
+                     </div>
+
+                     <button 
+                       type="submit" 
+                       disabled={registering}
+                       className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-50 mt-4"
+                     >
+                       {registering ? "Registering..." : "Assign & Deploy"}
+                     </button>
+                  </form>
+               </motion.div>
+            </div>
          )}
        </AnimatePresence>
     </DashboardLayout>

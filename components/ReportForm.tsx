@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, MapPin, Camera, AlertCircle, CheckCircle2, X, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 export default function ReportForm() {
   const [loading, setLoading] = useState(false);
@@ -17,17 +18,35 @@ export default function ReportForm() {
   const [evidence, setEvidence] = useState<{ name: string, data: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEvidence(prev => [...prev, { name: file.name, data: reader.result as string }]);
-      };
-      reader.readAsDataURL(file);
-    });
+    setLoading(true); // show generic loading while uploading
+    for (const file of Array.from(files)) {
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+
+        // Upload directly into the 'evidence' bucket
+        const { error: uploadError } = await supabase.storage
+          .from('evidence')
+          .upload(fileName, file);
+        
+        if (uploadError) throw uploadError;
+
+        // Retrieve public URL from Supabase
+        const { data: { publicUrl } } = supabase.storage
+          .from('evidence')
+          .getPublicUrl(fileName);
+
+        setEvidence(prev => [...prev, { name: file.name, data: publicUrl }]);
+      } catch (error: any) {
+        console.error("Storage Upload Error:", error);
+        alert(`Failed to upload ${file.name}: ${error.message || "Unknown error"}`);
+      }
+    }
+    setLoading(false);
   };
 
   const removeEvidence = (index: number) => {
@@ -80,7 +99,7 @@ export default function ReportForm() {
     }
 
     const payload = {
-      userId: settings.anonymityMode ? `ANON-${user.id.split('-')[1] || user.id}` : user.id,
+      userId: user.id, // Must be strict system UUID
       type: formData.type,
       description: processedDescription,
       location: {

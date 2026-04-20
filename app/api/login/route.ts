@@ -1,18 +1,33 @@
 import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
-  const { email, password, role } = await request.json();
+  try {
+    const { email, password, role } = await request.json();
 
-  const mockUsers = [
-    { email: "admin@shespeaks.com", password: "admin123", role: "admin" },
-    { email: "police@shespeaks.com", password: "police123", role: "police" }
-  ];
+    const { data: user, error } = await supabase
+      .from('profiles')
+      .select('email, role, full_name, id')
+      .eq('email', email)
+      .eq('password', password)
+      .eq('role', role)
+      .single();
 
-  const user = mockUsers.find(u => u.email === email && u.password === password && u.role === role);
+    if (user && !error) {
+      return NextResponse.json({ 
+        success: true, 
+        user: { 
+          id: user.id,
+          email: user.email, 
+          role: user.role,
+          name: user.full_name
+        } 
+      });
+    }
 
-  if (user) {
-    return NextResponse.json({ success: true, user: { email: user.email, role: user.role } });
+    return NextResponse.json({ success: false, message: "Invalid credentials or unauthorized role" }, { status: 401 });
+  } catch (error) {
+    console.error("Global Login Error:", error);
+    return NextResponse.json({ success: false, message: "Server error" }, { status: 500 });
   }
-
-  return NextResponse.json({ success: false, message: "Invalid credentials" }, { status: 401 });
 }

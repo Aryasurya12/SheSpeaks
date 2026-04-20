@@ -21,19 +21,37 @@ export default function ProfilePanel({ role }: ProfilePanelProps) {
   const [toast, setToast] = useState("");
 
   useEffect(() => {
-    // Load from local storage
+    // Load auth data from signup/login — this is the source of truth
+    const authData = localStorage.getItem("shespeaks_user");
+    const parsedAuth = authData ? JSON.parse(authData) : null;
+    
+    // Load any previously saved profile-specific data (username, mobile, etc.)
     const stored = localStorage.getItem(`shespeaks_profile_${role}`);
-    const anonId = localStorage.getItem("anon_id") || `ANON-${Math.floor(100000 + Math.random() * 900000)}`;
+    const parsedStored = stored ? JSON.parse(stored) : null;
+    
+    // Resolve anonId: auth user ID > stored > generate new
+    const anonId = parsedAuth?.id 
+      || localStorage.getItem("anon_id") 
+      || `ANON-${Math.floor(100000 + Math.random() * 900000)}`;
     
     if (!localStorage.getItem("anon_id")) {
       localStorage.setItem("anon_id", anonId);
     }
 
-    if (stored) {
-      setProfile({ ...JSON.parse(stored), anonId });
-    } else {
-      setProfile(p => ({ ...p, anonId }));
-    }
+    // Build profile: auth data always wins for signup fields,
+    // stored profile provides profile-only fields (username, mobile)
+    const mergedProfile = {
+      fullName: parsedAuth?.fullName || parsedStored?.fullName || "",
+      username: parsedStored?.username || "",
+      email: parsedAuth?.email || parsedStored?.email || "",
+      mobile: parsedStored?.mobile || "",
+      isAnonymous: parsedAuth?.isAnonymous ?? parsedStored?.isAnonymous ?? true,
+      anonId,
+    };
+
+    setProfile(mergedProfile);
+    // Persist the merged result
+    localStorage.setItem(`shespeaks_profile_${role}`, JSON.stringify(mergedProfile));
   }, [role]);
 
   const handleSave = (e: React.FormEvent) => {

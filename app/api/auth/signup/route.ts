@@ -1,28 +1,63 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
     const { email, password, fullName, isAnonymous } = await request.json();
 
-    const users = db.getUsers();
-    
+    const anonId = `ANON-${Math.floor(100000 + Math.random() * 900000)}`;
+    const authUserId = crypto.randomUUID();
+
     if (!isAnonymous) {
-      const existingUser = users.find(u => u.email === email);
+      // Check if email already exists in profiles
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single();
+        
       if (existingUser) {
-        return NextResponse.json({ success: false, message: "User already exists" }, { status: 400 });
+        return NextResponse.json(
+          { success: false, message: "User already exists" },
+          { status: 400 }
+        );
       }
     }
 
-    const newUser = await db.addUser({
-      email: isAnonymous ? undefined : email,
-      password: isAnonymous ? undefined : password,
-      fullName: isAnonymous ? "Anonymous User" : fullName,
-      isAnonymous
-    });
+    // Insert into Supabase 'profiles' table directly (Bypassing Auth completely)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert([
+        {
+          id: authUserId,
+          full_name: isAnonymous ? "Anonymous User" : fullName,
+          anonymous_id: anonId,
+          email: isAnonymous ? null : email,
+          password: isAnonymous ? null : password
+          // role and phone will use database defaults
+        }
+      ]);
 
-    return NextResponse.json({ success: true, user: newUser });
+    if (profileError) {
+      console.error("Profile insertion error:", profileError);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${profileError.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Return the response structure the frontend expects
+    const userToReturn = {
+      id: authUserId,
+      email: isAnonymous ? undefined : email,
+      fullName: isAnonymous ? "Anonymous User" : fullName,
+      isAnonymous,
+      anonId 
+    };
+
+    return NextResponse.json({ success: true, user: userToReturn });
   } catch (error) {
+    console.error("Signup error:", error);
     return NextResponse.json({ success: false, message: "Server error" }, { status: 500 });
   }
 }
