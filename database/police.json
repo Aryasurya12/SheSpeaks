@@ -1,34 +1,32 @@
 [
   {
-    "id": "OFF-001",
+    "id": "POL-8291",
     "name": "Officer Smith",
     "status": "ON_DUTY",
     "activeCases": 0,
-    "sector": "Sector 71",
-    "avatar": "OS"
+    "sector": "Sector 4",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Smith",
+    "email": "smith@unit.gov",
+    "password": "pass"
   },
   {
-    "id": "OFF-002",
-    "name": "Officer Jones",
+    "id": "POL-5521",
+    "name": "Inspector Raven",
     "status": "OFF_DUTY",
     "activeCases": 0,
-    "sector": "Sector 12",
-    "avatar": "OJ"
+    "sector": "Sector 9",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Raven",
+    "email": "raven@unit.gov",
+    "password": "pass"
   },
   {
-    "id": "OFF-003",
-    "name": "Officer Davis",
+    "id": "POL-1102",
+    "name": "Agent Carter",
     "status": "ON_DUTY",
     "activeCases": 0,
-    "sector": "Sector 01",
-    "avatar": "OD"
-  },
-  {
-    "id": "OFF-004",
-    "name": "Officer Wilson",
-    "status": "ON_DUTY",
-    "activeCases": 0,
-    "sector": "Sector 29",
-    "avatar": "OW"
+    "sector": "Sector 1",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Carter",
+    "email": "carter@unit.gov",
+    "password": "pass"
   }
 ]

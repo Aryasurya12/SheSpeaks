@@ -26,6 +26,8 @@ export default function PoliceLogin() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem("shespeaks_user", JSON.stringify(data.user));
         router.push("/police/dashboard");
       } else {
         setError("Invalid credentials for Police portal.");

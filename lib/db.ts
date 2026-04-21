@@ -53,6 +53,8 @@ export interface PoliceOfficer {
   activeCases: number;
   sector: string;
   avatar: string;
+  email?: string;
+  password?: string;
 }
 
 export const db = {

@@ -108,8 +108,11 @@ export default function ReportForm() {
         lng: location?.lng || 0
       },
       evidence: evidence.map(e => e.data),
-      name: settings.anonymityMode ? "ANONYMOUS-USER" : user.fullName,
-      email: settings.anonymityMode ? "ENCRYPTED" : user.email,
+      // Identity masking for Admin/Police views
+      name: settings.anonymityMode ? `ANONYMOUS (ID: ${user.id.split('-')[1] || user.id})` : user.fullName,
+      email: settings.anonymityMode ? "[PROTECTED]" : user.email,
+      phone: settings.anonymityMode ? "[PROTECTED]" : user.mobile,
+      isAnonymous: settings.anonymityMode
     };
 
     try {
