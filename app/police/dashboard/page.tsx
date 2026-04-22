@@ -37,7 +37,7 @@ export default function PoliceDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [activeOfficer, setActiveOfficer] = useState("Officer Smith");
+  const [activeOfficer, setActiveOfficer] = useState("");
   const [officerList, setOfficerList] = useState<any[]>([]);
 
   const fetchReports = () => {
@@ -53,7 +53,12 @@ export default function PoliceDashboard() {
   const fetchOfficers = () => {
     fetch("/api/police")
       .then(res => res.json())
-      .then(data => setOfficerList(data || []));
+      .then(data => {
+        setOfficerList(data || []);
+        if (data && data.length > 0 && !activeOfficer) {
+           setActiveOfficer(data[0].id);
+        }
+      });
   };
 
   useEffect(() => {
@@ -108,7 +113,7 @@ export default function PoliceDashboard() {
                     onChange={(e) => setActiveOfficer(e.target.value)}
                     className="bg-transparent text-sm font-black uppercase tracking-tight text-white outline-none cursor-pointer"
                   >
-                    {officerList.map(o => <option key={o.id} value={o.name} className="bg-[#0B0120]">{o.name}</option>)}
+                    {officerList.map(o => <option key={o.id} value={o.id} className="bg-[#0B0120]">{o.name}</option>)}
                   </select>
                </div>
              </div>
@@ -179,7 +184,18 @@ export default function PoliceDashboard() {
                     <div className="flex flex-col gap-5 text-[11px] font-black uppercase tracking-widest text-foreground/30">
                         <div className="flex items-center gap-3">
                           <MapPin className="w-4 h-4 text-secondary" />
-                          <span className="truncate max-w-[250px]">{typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}</span>
+                          {typeof report.location === 'object' && report.location !== null && report.location.lat && report.location.lng ? (
+                            <a 
+                              href={`https://www.google.com/maps/search/?api=1&query=${report.location.lat},${report.location.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="truncate max-w-[250px] hover:text-secondary hover:underline transition-colors cursor-pointer"
+                            >
+                              {report.location.address || "GPS Coordinates"}
+                            </a>
+                          ) : (
+                            <span className="truncate max-w-[250px]">{typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <Clock className="w-4 h-4 text-orange-500" />

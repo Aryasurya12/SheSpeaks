@@ -66,6 +66,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Missing required fields" }, { status: 400 });
     }
 
+    // Auto-assign to an on-duty police officer
+    const { data: officers } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'police')
+      .eq('is_on_duty', true)
+      .limit(1);
+
+    const assignedToId = officers && officers.length > 0 ? officers[0].id : null;
+
     let { data: newReport, error } = await supabase
       .from('reports')
       .insert([{
@@ -80,7 +90,8 @@ export async function POST(request: Request) {
         reporter_email: email,
         reporter_phone: phone,
         status: 'pending',
-        is_anonymous: isAnonymous
+        is_anonymous: isAnonymous,
+        assigned_to: assignedToId
       }])
       .select()
       .single();
@@ -101,7 +112,8 @@ export async function POST(request: Request) {
             reporter_name: name,
             reporter_email: email,
             reporter_phone: phone,
-            status: 'pending'
+            status: 'pending',
+            assigned_to: assignedToId
           }])
           .select()
           .single();
@@ -144,22 +156,16 @@ export async function PATCH(request: Request) {
     // Fetch current state for transition validation
     const { data: currentReport, error: fetchError } = await supabase
       .from('reports')
-      .select('status, status_history, assigned_to')
+      .select('status, assigned_to')
       .eq('id', id)
       .single();
       
     if (fetchError) throw fetchError;
 
     const updateData: any = { updated_at: new Date().toISOString() };
-    const history = currentReport.status_history || [];
 
     if (assignedTo !== undefined) {
-      updateData.assigned_to = assignedTo;
-      history.push({
-        status: currentReport.status,
-        message: `Investigator ${assignedTo} assigned to case`,
-        timestamp: new Date().toISOString()
-      });
+      updateData.assigned_to = assignedTo === "" ? null : assignedTo;
     }
 
     if (status !== undefined) {
@@ -170,11 +176,6 @@ export async function PATCH(request: Request) {
 
       if (nextIndex > currentIndex || (status === currentReport.status)) {
         updateData.status = status;
-        history.push({
-          status: status,
-          message: `Status updated to ${status.toUpperCase()}`,
-          timestamp: new Date().toISOString()
-        });
       } else {
         return NextResponse.json({ 
           success: false, 
@@ -183,16 +184,29 @@ export async function PATCH(request: Request) {
       }
     }
     
-    updateData.status_history = history;
-    
-    const { data: updatedReport, error } = await supabase
+    let { data: updatedReport, error } = await supabase
       .from('reports')
       .update(updateData)
       .eq('id', id)
       .select()
       .single();
       
-    if (error) throw error;
+    if (error) {
+       // If assigned_to is missing in the schema as well, we just fallback and omit it.
+       if (error.code === 'PGRST204' || error.message?.includes('assigned_to')) {
+          delete updateData.assigned_to;
+          const { data: fallbackReport, error: fallbackError } = await supabase
+            .from('reports')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+          if (fallbackError) throw fallbackError;
+          updatedReport = fallbackReport;
+       } else {
+          throw error;
+       }
+    }
 
     // Real-time broadcast for instant user dashboard update
     const channel = supabase.channel(`report_${id}`);

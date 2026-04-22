@@ -50,9 +50,18 @@ export default function UserDashboard() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("shespeaks_user");
+    const storedProfile = localStorage.getItem("shespeaks_profile_user");
+    
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
+      const parsedProfile = storedProfile ? JSON.parse(storedProfile) : {};
+      
+      setUser({
+        ...parsedUser,
+        fullName: parsedProfile.fullName || parsedUser.fullName || parsedUser.name,
+        username: parsedProfile.username,
+        email: parsedProfile.email || parsedUser.email
+      });
       fetchRecentReports(parsedUser.id);
     }
   }, []);
@@ -191,7 +200,7 @@ export default function UserDashboard() {
               </button>
               <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[1.1]">
                 Hello, <span className="text-gradient">
-                  {anonymousMode ? user?.id : user?.fullName?.split(" ")[0] || "User"}
+                  {(user?.username || user?.fullName || user?.name)?.split(" ")[0] || "User"}
                 </span>
               </h1>
               <p className="text-xl text-foreground/50 font-medium max-w-xl leading-relaxed">

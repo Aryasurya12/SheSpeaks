@@ -89,7 +89,25 @@ export default function EmergencyDrawer({ isOpen, onClose }: { isOpen: boolean, 
                     <Building2 className="w-6 h-6 text-pink-500" />
                  </div>
                  <p className="text-xs font-semibold text-foreground/80 mt-1">Nearest Safe Zone: Police Station<br/><span className="text-xs font-normal text-foreground/50">0.8 km away</span></p>
-                 <button className="text-[10px] font-black text-pink-400 mt-2 uppercase tracking-widest hover:text-pink-300 transition-colors bg-pink-500/10 px-4 py-2 rounded-lg">Get Directions</button>
+                 <button 
+                   onClick={() => {
+                     if (navigator.geolocation) {
+                       navigator.geolocation.getCurrentPosition(
+                         (pos) => {
+                           window.open(`https://www.google.com/maps/dir/?api=1&origin=${pos.coords.latitude},${pos.coords.longitude}&destination=nearest+police+station`, '_blank');
+                         },
+                         () => {
+                           window.open('https://www.google.com/maps/search/nearest+police+station', '_blank');
+                         }
+                       );
+                     } else {
+                       window.open('https://www.google.com/maps/search/nearest+police+station', '_blank');
+                     }
+                   }}
+                   className="text-[10px] font-black text-pink-400 mt-2 uppercase tracking-widest hover:text-pink-300 transition-colors bg-pink-500/10 px-4 py-2 rounded-lg cursor-pointer"
+                 >
+                   Get Directions
+                 </button>
               </div>
             </div>
           </motion.div>

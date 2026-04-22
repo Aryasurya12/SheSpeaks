@@ -20,7 +20,7 @@ export async function POST(request: Request) {
           id: user.id,
           email: user.email, 
           role: user.role,
-          name: user.full_name
+          fullName: user.full_name
         } 
       });
     }

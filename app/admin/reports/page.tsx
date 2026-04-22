@@ -122,16 +122,16 @@ export default function AdminReports() {
                            </select>
                         </td>
                         <td className="p-8">
-                           <select 
-                             value={report.assignedTo || ""}
-                             onChange={(e) => handleUpdate(report.id, report.status, e.target.value)}
-                             className="px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10 outline-none bg-black/40 text-foreground/60 focus:border-primary cursor-pointer transition-all hover:bg-black/60 w-full"
-                           >
-                             <option value="" className="bg-[#0B0120]">Unit Unassigned</option>
-                             {police.map(o => (
-                               <option key={o.id} value={o.name} className="bg-[#0B0120]">{o.name} ({o.sector})</option>
-                             ))}
-                           </select>
+                             <select 
+                               value={report.assignedTo || ""}
+                               onChange={(e) => handleUpdate(report.id, report.status, e.target.value)}
+                               className="px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10 outline-none bg-black/40 text-foreground/60 focus:border-primary cursor-pointer transition-all hover:bg-black/60 w-full"
+                             >
+                               <option value="" className="bg-[#0B0120]">Unit Unassigned</option>
+                               {police.map(o => (
+                                 <option key={o.id} value={o.id} className="bg-[#0B0120]">{o.name} ({o.sector})</option>
+                               ))}
+                             </select>
                         </td>
                         <td className="p-8 text-right relative">
                            <button 

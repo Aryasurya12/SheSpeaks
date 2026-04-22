@@ -52,16 +52,22 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children, role, userEmail: propUserEmail }: DashboardLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState(propUserEmail);
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    if (!userEmail) {
-      const stored = localStorage.getItem("shespeaks_user");
-      if (stored) {
-        const user = JSON.parse(stored);
-        setUserEmail(user.id || user.email);
+    const storedAuth = localStorage.getItem("shespeaks_user");
+    const storedProfile = localStorage.getItem(`shespeaks_profile_${role}`);
+    
+    if (storedAuth) {
+      const authUser = JSON.parse(storedAuth);
+      const profileUser = storedProfile ? JSON.parse(storedProfile) : {};
+      
+      if (!userEmail) {
+        setUserEmail(profileUser.email || authUser.email || authUser.anonId || "Anonymous");
       }
+      setUserName(profileUser.username || profileUser.fullName || authUser.fullName || authUser.name || "");
     }
-  }, [userEmail]);
+  }, [userEmail, role]);
 
   const handleLogout = () => {
     localStorage.removeItem("shespeaks_user");
@@ -172,16 +178,16 @@ export default function DashboardLayout({ children, role, userEmail: propUserEma
             </button>
             <Link href={`/${role}/profile`} className="flex items-center gap-3 pl-2 lg:pl-6 border-l border-border hover:opacity-80 transition-opacity">
               <div className="text-right hidden md:block">
-                <p className="text-xs font-bold text-foreground">
-                  {role.toUpperCase()} USER
+                <p className="text-xs font-bold text-foreground uppercase">
+                  {userName || `${role} USER`}
                 </p>
-                <p className="text-[10px] text-foreground/30 font-medium">
+                <p className="text-[10px] text-foreground/30 font-medium truncate max-w-[150px]">
                   {userEmail || "Anonymous Session"}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 p-[2px]">
                 <div className="w-full h-full bg-[#0B0120] rounded-[10px] flex items-center justify-center overflow-hidden">
-                   <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${role}`} alt={role} />
+                   <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${userName || role}`} alt={role} />
                 </div>
               </div>
             </Link>
