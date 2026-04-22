@@ -16,6 +16,7 @@ import {
 import DashboardLayout from "@/components/DashboardLayout";
 import ReportModal from "@/components/ReportModal";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 interface Report {
   id: string;
@@ -58,6 +59,19 @@ export default function PoliceDashboard() {
   useEffect(() => {
     fetchReports();
     fetchOfficers();
+
+    // High-velocity real-time listener for incoming Panic Signals
+    const channel = supabase.channel('emergency_signals')
+      .on('broadcast', { event: 'panic_alert' }, (payload) => {
+        const newIncident = payload.payload;
+        // Inject directly into feed if not already resolved, to avoid awaiting DB flush
+        setReports(prev => [newIncident, ...prev].filter((v,i,a)=>a.findIndex(t=>(t.id===v.id))===i));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [activeOfficer]);
 
   const handleUpdateStatus = async (id: string, status: string) => {

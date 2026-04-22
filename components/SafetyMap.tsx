@@ -81,27 +81,33 @@ export default function SafetyMap() {
         </Marker>
 
         {/* Report Markers */}
-        {reports.map((report) => (
-          <Marker 
-            key={report.id} 
-            position={[report.lat || 19.0760, report.lng || 72.8777]} 
-            icon={defaultIcon}
-          >
-            <Popup>
-              <div className="p-2 min-w-[150px]">
-                <div className="flex items-center justify-between mb-2">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-primary">{report.id}</p>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">{report.status}</p>
+        {reports.map((report) => {
+          const lat = report.location?.lat || report.lat || 19.0760;
+          const lng = report.location?.lng || report.lng || 72.8777;
+          const address = typeof report.location === 'object' ? report.location.address : report.location;
+
+          return (
+            <Marker 
+              key={report.id} 
+              position={[lat, lng]} 
+              icon={defaultIcon}
+            >
+              <Popup>
+                <div className="p-2 min-w-[150px]">
+                  <div className="flex items-center justify-between mb-2">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-primary">{report.id}</p>
+                     <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">{report.status}</p>
+                  </div>
+                  <h4 className="font-bold text-base mb-1">{report.type}</h4>
+                  <p className="text-xs text-slate-500 mb-2 truncate">{report.description}</p>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                     <span>{address || 'Unknown Location'}</span>
+                  </div>
                 </div>
-                <h4 className="font-bold text-base mb-1">{report.type}</h4>
-                <p className="text-xs text-slate-500 mb-2 truncate">{report.description}</p>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                   <span>{report.location}</span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
       
       <div className="absolute bottom-8 left-8 z-10 glass-dark p-6 rounded-3xl border border-white/10 shadow-2xl space-y-4 max-w-xs">

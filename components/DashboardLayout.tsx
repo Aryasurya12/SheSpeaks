@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import FloatingSafetyCluster from "./FloatingSafetyCluster";
 
 interface SidebarLinkProps {
   href: string;
@@ -198,6 +199,7 @@ export default function DashboardLayout({ children, role, userEmail: propUserEma
           </motion.div>
         </div>
       </main>
+      {role === "user" && <FloatingSafetyCluster />}
     </div>
   );
 }

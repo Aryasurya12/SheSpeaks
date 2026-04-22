@@ -15,6 +15,7 @@ interface Report {
   email?: string;
   phone?: string;
   userId?: string;
+  anonymousMode?: boolean;
 }
 
 interface ReportModalProps {
@@ -31,7 +32,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
 
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF("p", "mm", "a4");
-      
+
       // CONFIGURATION (STRICT)
       const MARGIN = 20;
       const PAGE_WIDTH = doc.internal.pageSize.getWidth();
@@ -41,7 +42,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       const VALUE1_X = 65;
       const COL2_X = 110;
       const VALUE2_X = 155;
-      
+
       const BRAND_PURPLE = [109, 40, 217];
       const BLACK = [0, 0, 0];
       const DARK_GRAY = [80, 80, 80];
@@ -58,7 +59,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
         doc.setFontSize(20);
         doc.setTextColor(BLACK[0], BLACK[1], BLACK[2]);
         doc.text("SheSpeaks", MARGIN + 8, y + 6);
-        
+
         doc.setFontSize(7);
         doc.setFont("helvetica", "italic");
         doc.setTextColor(DARK_GRAY[0], DARK_GRAY[1], DARK_GRAY[2]);
@@ -82,7 +83,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
           doc.setPage(i);
           doc.setDrawColor(LIGHT_GRAY[0], LIGHT_GRAY[1], LIGHT_GRAY[2]);
           doc.line(MARGIN, PAGE_HEIGHT - 20, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 20);
-          
+
           doc.setFontSize(7);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(DARK_GRAY[0], DARK_GRAY[1], DARK_GRAY[2]);
@@ -126,7 +127,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       drawSectionTitle("1. Incident Overview");
       doc.setFontSize(8);
       doc.setTextColor(DARK_GRAY[0], DARK_GRAY[1], DARK_GRAY[2]);
-      
+
       // GRID ROW 1
       doc.setFont("helvetica", "bold"); doc.text("Report ID:", COL1_X + 2, currentY);
       doc.setFont("helvetica", "normal"); doc.text(report.id, VALUE1_X, currentY);
@@ -138,7 +139,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       doc.setFont("helvetica", "bold"); doc.text("Incident Type:", COL1_X + 2, currentY);
       doc.setFont("helvetica", "normal"); doc.text((report.type || "ALERT").toUpperCase(), VALUE1_X, currentY);
       doc.setFont("helvetica", "bold"); doc.text("Current Status:", COL2_X, currentY);
-      doc.setFont("helvetica", "bold"); 
+      doc.setFont("helvetica", "bold");
       const sCol = report.status === "resolved" ? [16, 185, 129] : [245, 158, 11];
       doc.setTextColor(sCol[0], sCol[1], sCol[2]);
       doc.text((report.status || "PENDING").toUpperCase(), VALUE2_X, currentY);
@@ -148,7 +149,10 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       // SECTION 2: REPORTER
       drawSectionTitle("2. Reporter Information");
       doc.setFontSize(8);
-      if (report.name) {
+      
+      const isActuallyAnonymous = report.anonymousMode ?? (!report.name || report.name.startsWith("ANONYMOUS"));
+
+      if (!isActuallyAnonymous && report.name) {
         doc.setFont("helvetica", "bold"); doc.text("Name:", COL1_X + 2, currentY);
         doc.setFont("helvetica", "normal"); doc.text(report.name, VALUE1_X, currentY);
         doc.setFont("helvetica", "bold"); doc.text("User Type:", COL2_X, currentY);
@@ -180,7 +184,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       const loc = report.location;
       const addr = typeof loc === 'object' ? (loc.address || "Current Position") : String(loc || "Unknown");
       const latent = typeof loc === 'object' ? `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}` : "N/A";
-      
+
       doc.setFont("helvetica", "bold"); doc.text("Address:", COL1_X + 2, currentY);
       doc.setFont("helvetica", "normal"); doc.text(addr, VALUE1_X, currentY);
       currentY += 7;
@@ -242,25 +246,25 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B0120]/80 backdrop-blur-sm">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         className="glass-dark border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative"
       >
         <div className="flex items-center justify-between p-6 border-b border-white/5">
-           <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-3">
-             <ShieldCheck className="w-6 h-6" /> Incident Details
-           </h2>
-           <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
-             <X className="w-5 h-5 text-foreground/50" />
-           </button>
+          <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-3">
+            <ShieldCheck className="w-6 h-6" /> Incident Details
+          </h2>
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
+            <X className="w-5 h-5 text-foreground/50" />
+          </button>
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto p-8">
-           <div id="pdf-report" className="space-y-8">
-           {/* Header Info */}
-           <div className="grid grid-cols-2 gap-6 pb-6 border-b border-white/5">
+          <div id="pdf-report" className="space-y-8">
+            {/* Header Info */}
+            <div className="grid grid-cols-2 gap-6 pb-6 border-b border-white/5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Report ID</p>
                 <p className="text-lg font-mono text-primary font-bold">{report.id}</p>
@@ -270,32 +274,32 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
                 <p className="text-lg font-black uppercase">{report.status}</p>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2"><MapPin className="w-3 h-3"/> Location</p>
-                 <p className="font-semibold text-sm">
-                   {typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}
-                 </p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2"><MapPin className="w-3 h-3" /> Location</p>
+                <p className="font-semibold text-sm">
+                  {typeof report.location === 'object' && report.location !== null ? report.location.address : report.location}
+                </p>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2"><Clock className="w-3 h-3"/> Timestamp</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 flex items-center gap-2"><Clock className="w-3 h-3" /> Timestamp</p>
                 <p className="font-semibold text-sm">{new Date(report.createdAt).toLocaleString()}</p>
               </div>
-           </div>
+            </div>
 
-           {/* Personal Info if available */}
-           <div className="p-6 rounded-2xl glass border border-primary/20 bg-primary/5">
+            {/* Personal Info if available */}
+            <div className="p-6 rounded-2xl glass border border-primary/20 bg-primary/5">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4">Involved Party / Victim</p>
-              {report.name ? (
+              {!(report.anonymousMode ?? (!report.name || report.name.startsWith("ANONYMOUS"))) && report.name ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 flex items-center gap-2"><User className="w-3 h-3"/> Full Name</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 flex items-center gap-2"><User className="w-3 h-3" /> Full Name</p>
                     <p className="font-bold text-sm tracking-tight">{report.name}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 flex items-center gap-2"><Phone className="w-3 h-3"/> Contact</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 flex items-center gap-2"><Phone className="w-3 h-3" /> Contact</p>
                     <p className="font-bold text-sm tracking-tight">{report.phone || "—"}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 flex items-center gap-2"><Mail className="w-3 h-3"/> Email</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 flex items-center gap-2"><Mail className="w-3 h-3" /> Email</p>
                     <p className="font-bold text-sm tracking-tight">{report.email || "—"}</p>
                   </div>
                 </div>
@@ -305,27 +309,27 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
                   <p className="font-mono text-sm text-foreground/50">Secure ID: <span className="text-primary/70">{report.userId}</span></p>
                 </div>
               )}
-           </div>
+            </div>
 
-           {/* Description */}
-           <div className="space-y-3">
+            {/* Description */}
+            <div className="space-y-3">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Detailed Description</p>
               <div className="p-6 rounded-2xl bg-black/20 border border-white/5 text-sm leading-relaxed text-foreground/80">
                 {report.description || "No specific details provided."}
               </div>
-           </div>
-           
-           <div className="space-y-3">
+            </div>
+
+            <div className="space-y-3">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Assigned Resources</p>
               <p className="font-bold text-sm">{report.assignedTo || "Unassigned"}</p>
-           </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="p-6 border-t border-white/5 flex items-center justify-end">
-           <button onClick={downloadPDF} className="px-6 py-2 bg-primary/20 hover:bg-primary/30 text-primary font-black rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all">
-             <Download className="w-4 h-4" /> Download Official PDF
-           </button>
+        <div className="p-6 border-t border-white/5 flex items-center justify-end">
+          <button onClick={downloadPDF} className="px-6 py-2 bg-primary/20 hover:bg-primary/30 text-primary font-black rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all">
+            <Download className="w-4 h-4" /> Download Official PDF
+          </button>
         </div>
       </motion.div>
     </div>

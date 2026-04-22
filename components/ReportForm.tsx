@@ -32,7 +32,7 @@ export default function ReportForm() {
         const { error: uploadError } = await supabase.storage
           .from('evidence')
           .upload(fileName, file);
-        
+
         if (uploadError) throw uploadError;
 
         // Retrieve public URL from Supabase
@@ -74,7 +74,7 @@ export default function ReportForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const settingsStr = localStorage.getItem("sheSpeaksSettings");
     const settings = settingsStr ? JSON.parse(settingsStr) : {
       anonymityMode: true,
@@ -108,10 +108,17 @@ export default function ReportForm() {
         lng: location?.lng || 0
       },
       evidence: evidence.map(e => e.data),
-      // Identity masking for Admin/Police views
-      name: settings.anonymityMode ? `ANONYMOUS (ID: ${user.id.split('-')[1] || user.id})` : user.fullName,
+      // NEW ARCHITECTURE: Explicit flag + Information Snapshot
+      anonymousMode: settings.anonymityMode,
+      submittedIdentitySnapshot: {
+        fullName: user.fullName || user.name || "Identified User",
+        email: user.email || "N/A",
+        phone: user.mobile || user.phone || "N/A"
+      },
+      // Identity masking for legacy backend columns
+      name: settings.anonymityMode ? `ANONYMOUS (ID: ${user.id.split('-')[1] || user.id})` : (user.fullName || user.name || "Identified User"),
       email: settings.anonymityMode ? "[PROTECTED]" : user.email,
-      phone: settings.anonymityMode ? "[PROTECTED]" : user.mobile,
+      phone: settings.anonymityMode ? "[PROTECTED]" : (user.mobile || user.phone),
       isAnonymous: settings.anonymityMode
     };
 
@@ -121,7 +128,7 @@ export default function ReportForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      
+
       if (response.ok) {
         setSubmitted(true);
         setFormData({ type: "harassment", description: "", address: "" });
@@ -152,11 +159,11 @@ export default function ReportForm() {
         </div>
         <h3 className="text-3xl font-bold mb-4 tracking-tight text-white">Report {settings.anonymityMode ? "Anonymously" : ""} Protected</h3>
         <p className="text-foreground/50 mb-0 max-w-sm">
-          {settings.anonymityMode 
+          {settings.anonymityMode
             ? "Your identity has been masked. The report is now in the secure verification queue."
             : "Your report has been received and is being processed. You can track its status in your dashboard."}
         </p>
-        <button 
+        <button
           onClick={() => setSubmitted(false)}
           className="mt-8 text-primary font-bold hover:underline"
         >
@@ -174,12 +181,12 @@ export default function ReportForm() {
           File New Anonymous Report
         </h3>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="p-8 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-4">Incident Type</label>
-            <select 
+            <select
               required
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -192,12 +199,12 @@ export default function ReportForm() {
               <option value="other" className="bg-[#0B0120]">Other</option>
             </select>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-4">Location</label>
             <div className="relative group">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary group-focus-within:scale-110 transition-transform" />
-              <input 
+              <input
                 required
                 type="text"
                 placeholder="Where did it happen?"
@@ -205,8 +212,8 @@ export default function ReportForm() {
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="w-full h-14 pl-12 pr-4 rounded-xl bg-white/5 border border-white/5 focus:border-primary text-sm text-white outline-none transition-all"
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={captureLocation}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg text-primary transition-all"
                 title="Get Current Location"
@@ -217,15 +224,15 @@ export default function ReportForm() {
             </div>
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 ml-4">Details</label>
-          <textarea 
+          <textarea
             required
             rows={4}
             placeholder="Describe the incident in detail..."
-             value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="w-full p-4 rounded-xl bg-white/5 border border-white/5 focus:border-primary outline-none text-white transition-all resize-none text-sm leading-relaxed"
           />
         </div>
@@ -235,15 +242,15 @@ export default function ReportForm() {
           {evidence.length > 0 && (
             <div className="flex flex-wrap gap-4">
               {evidence.map((file, idx) => (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  key={idx} 
+                  key={idx}
                   className="relative group w-20 h-20 rounded-xl overflow-hidden border border-white/10"
                 >
                   <img src={file.data} alt="evidence" className="w-full h-full object-cover" />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => removeEvidence(idx)}
                     className="absolute top-1 right-1 p-1 bg-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
@@ -255,10 +262,10 @@ export default function ReportForm() {
             </div>
           )}
         </AnimatePresence>
-        
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-white/5">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-3 text-xs font-black uppercase tracking-widest px-6 py-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-primary"
@@ -266,17 +273,17 @@ export default function ReportForm() {
               <Paperclip className="w-4 h-4" />
               Attach Evidence
             </button>
-            <input 
-              type="file" 
-              multiple 
-              accept="image/*,video/*" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              className="hidden" 
+            <input
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
             />
           </div>
-          
-          <button 
+
+          <button
             type="submit"
             disabled={loading}
             className={cn(

@@ -17,6 +17,7 @@ import {
 import DashboardLayout from "@/components/DashboardLayout";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function ReportDetails() {
   const params = useParams();
@@ -32,6 +33,23 @@ export default function ReportDetails() {
           setReport(found);
           setLoading(false);
         });
+
+      // Real-time synchronization
+      const channel = supabase.channel(`report_${params.reportId}`)
+        .on('broadcast', { event: 'status_update' }, (payload) => {
+          // Sync frontend state instantly
+          const updated = payload.payload;
+          setReport((prev: any) => ({
+            ...prev,
+            status: updated.status,
+            statusHistory: updated.status_history || []
+          }));
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [params.reportId]);
 
@@ -153,21 +171,26 @@ export default function ReportDetails() {
                       time={new Date(report.createdAt).toLocaleTimeString()}
                    />
 
-                   <TimelineItem 
-                      icon={<ShieldCheck className="w-3 h-3" />}
-                      active={report.status !== 'pending'}
-                      title="Unit Assigned"
-                      desc={report.assignedTo ? `${report.assignedTo} assigned to case` : "Initial verification in progress"}
-                      time={report.assignedTo ? "--:--" : "PENDING"}
-                   />
+                   {report.statusHistory?.map((entry: any, idx: number) => (
+                      <TimelineItem 
+                        key={idx}
+                        icon={<Activity className="w-3 h-3" />}
+                        active={true}
+                        title={entry.status.toUpperCase()}
+                        desc={entry.message}
+                        time={new Date(entry.timestamp).toLocaleTimeString()}
+                      />
+                    ))}
 
-                   <TimelineItem 
-                      icon={<ShieldCheck className="w-3 h-3" />}
-                      active={report.status === 'resolved'}
-                      title="Case Resolution"
-                      desc={report.status === 'resolved' ? "Official documentation prepared & closed" : "Awaiting final confirmation"}
-                      time={report.status === 'resolved' ? "--:--" : "PENDING"}
-                   />
+                    {!report.statusHistory?.some((e: any) => e.status === 'resolved') && (
+                      <TimelineItem 
+                        icon={<ShieldCheck className="w-3 h-3" />}
+                        active={false}
+                        title="Final Resolution"
+                        desc="Awaiting final supervisor confirmation"
+                        time="PENDING"
+                      />
+                    )}
                 </div>
 
                 <div className="p-8 rounded-3xl bg-secondary/10 border border-secondary/20 space-y-4">

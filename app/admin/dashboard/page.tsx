@@ -16,6 +16,7 @@ import {
 import DashboardLayout from "@/components/DashboardLayout";
 import ReportModal from "@/components/ReportModal";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 interface Report {
   id: string;
@@ -47,6 +48,19 @@ export default function AdminDashboard() {
       setPolice(policeData || []);
       setLoading(false);
     });
+
+    // High-velocity real-time listener for incoming Panic Signals
+    const channel = supabase.channel('emergency_signals')
+      .on('broadcast', { event: 'panic_alert' }, (payload) => {
+        const newIncident = payload.payload;
+        // Inject directly into feed if not already tracked
+        setReports(prev => [newIncident, ...prev].filter((v,i,a)=>a.findIndex(t=>(t.id===v.id))===i));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const stats = [
@@ -170,11 +184,13 @@ export default function AdminDashboard() {
                           "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2",
                           report.status === "pending" ? "bg-orange-500/10 text-orange-500 border border-orange-500/20" :
                           report.status === "in-progress" ? "bg-primary/10 text-primary border border-primary/20" :
+                          report.status === "completed" ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" :
                           "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                         )}>
                           <div className={cn("w-1.5 h-1.5 rounded-full", 
                             report.status === "pending" ? "bg-orange-500 animate-pulse" :
-                            report.status === "in-progress" ? "bg-primary" : "bg-emerald-500"
+                            report.status === "in-progress" ? "bg-primary" : 
+                            report.status === "completed" ? "bg-blue-500" : "bg-emerald-500"
                           )} />
                           {report.status}
                         </span>
@@ -204,12 +220,17 @@ export default function AdminDashboard() {
                                </button>
                                <div className="h-[1px] bg-white/5 my-1" />
                                <div className="px-4 py-1 text-[10px] uppercase font-black tracking-widest text-foreground/40">Status</div>
-                               {report.status !== 'in-progress' && (
+                               {report.status !== 'in-progress' && report.status === 'pending' && (
                                  <button onClick={() => handleUpdate(report.id, { status: "in-progress" })} className="w-full text-left px-4 py-2 hover:bg-white/5 text-emerald-400 transition-all">
                                    Mark In-Progress
                                  </button>
                                )}
-                               {report.status !== 'resolved' && (
+                               {report.status === 'in-progress' && (
+                                 <button onClick={() => handleUpdate(report.id, { status: "completed" })} className="w-full text-left px-4 py-2 hover:bg-white/5 text-blue-400 transition-all">
+                                   Mark Completed
+                                 </button>
+                               )}
+                               {report.status === 'completed' && (
                                  <button onClick={() => handleUpdate(report.id, { status: "resolved" })} className="w-full text-left px-4 py-2 hover:bg-white/5 text-indigo-400 transition-all">
                                    Mark Resolved
                                  </button>
