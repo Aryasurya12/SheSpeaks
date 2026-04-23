@@ -1,78 +1,75 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Extract Location
-    const { searchParams } = new URL(req.url);
-    const lat = parseFloat(searchParams.get("lat") || "0");
-    const lng = parseFloat(searchParams.get("lng") || "0");
+    console.log("📥 Hardware trigger received from ESP32!");
 
-    // 2. Read Image Data
-    const arrayBuffer = await req.arrayBuffer();
-    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      return NextResponse.json({ error: "Empty request body" }, { status: 400 });
+    // 1. Extract coordinates safely
+    const url = new URL(req.url);
+    const lat = parseFloat(url.searchParams.get('lat') || '0');
+    const lng = parseFloat(url.searchParams.get('lng') || '0');
+
+    // 2. Read the raw image buffer from the ESP32
+    const imageBuffer = await req.arrayBuffer();
+    if (!imageBuffer || imageBuffer.byteLength === 0) {
+      console.error("❌ Error: Empty image buffer received.");
+      return NextResponse.json({ error: 'No image data' }, { status: 400 });
     }
-    const imageBuffer = Buffer.from(arrayBuffer);
+    console.log(`📸 Image received. Size: ${imageBuffer.byteLength} bytes`);
 
-    // 3. Supabase Client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: "Missing Supabase environment variables" }, { status: 500 });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // 4. Storage Upload
-    const filename = `iot_${Date.now()}.jpg`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("evidence")
-      .upload(filename, imageBuffer, {
-        contentType: "image/jpeg",
-        cacheControl: "3600",
+    // 3. Upload to Supabase Storage (Using your 'Images' bucket)
+    const fileName = `iot-alert-${Date.now()}.jpg`;
+    const { data: storageData, error: storageError } = await supabase.storage
+      .from('Images')
+      .upload(fileName, imageBuffer, {
+        contentType: 'image/jpeg',
         upsert: false
       });
 
-    if (uploadError) {
-      console.error("Storage upload error:", uploadError);
-      return NextResponse.json({ error: "Failed to upload image" }, { status: 500 });
+    if (storageError) {
+      console.error("❌ Supabase Storage Error:", storageError.message);
+      return NextResponse.json({ error: 'Storage failed', details: storageError.message }, { status: 500 });
     }
 
-    // 5. Get URL
-    const { data: { publicUrl } } = supabase.storage
-      .from("evidence")
-      .getPublicUrl(filename);
+    const { data: publicUrlData } = supabase.storage
+      .from('Images')
+      .getPublicUrl(fileName);
 
-    // 6. Database Insert
-    const { error: insertError } = await supabase
-      .from("reports")
-      .insert([
-        {
-          type: "HARDWARE_PANIC_ALERT",
-          description: "Automated SOS alert with image capture from ESP32-CAM wearable.",
-          latitude: lat,
-          longitude: lng,
-          is_iot_trigger: true,
-          evidence_urls: [publicUrl],
-          status: "pending"
-        }
-      ]);
+    console.log("✅ Image saved. URL:", publicUrlData.publicUrl);
 
-    if (insertError) {
-      console.error("Database insert error:", insertError);
-      return NextResponse.json({ error: "Failed to save report" }, { status: 500 });
+    // 4. Save to the Database with ultra-safe default values
+    const newReport = {
+      type: 'Hardware SOS',
+      description: 'Automated panic alert triggered by IoT wearable.',
+      latitude: lat,
+      longitude: lng,
+      evidence: [publicUrlData.publicUrl], // Array format to match your JSONB schema
+      status: 'pending',
+      is_anonymous: true,
+      reporter_name: 'IoT Device'
+    };
+
+    const { error: dbError } = await supabase
+      .from('reports')
+      .insert([newReport]);
+
+    if (dbError) {
+      console.error("❌ Supabase Database Error:", dbError.message, dbError.details);
+      return NextResponse.json({ error: 'DB insert failed', details: dbError.message }, { status: 500 });
     }
 
-    // 7. Response
-    return NextResponse.json({ 
-      success: true, 
-      imageUrl: publicUrl 
-    }, { status: 201 });
+    console.log("🎉 SUCCESS! Alert fully registered.");
+    return NextResponse.json({ success: true, url: publicUrlData.publicUrl }, { status: 201 });
 
   } catch (error) {
-    console.error("Hardware API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error('🔥 Critical System Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error', details: String(error) }, { status: 500 });
   }
 }
