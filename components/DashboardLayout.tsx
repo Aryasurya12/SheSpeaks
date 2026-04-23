@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { 
   Shield, 
@@ -12,7 +12,9 @@ import {
   Bell, 
   Search,
   Map,
-  Activity
+  Activity,
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -53,6 +55,32 @@ export default function DashboardLayout({ children, role, userEmail: propUserEma
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState(propUserEmail);
   const [userName, setUserName] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/report")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Sort by newest first
+          const sorted = data.sort((a, b) => b.createdAt - a.createdAt);
+          setNotifications(sorted.slice(0, 5));
+        }
+      })
+      .catch(e => console.error("Error fetching notifications", e));
+  }, []);
 
   useEffect(() => {
     const storedAuth = localStorage.getItem("shespeaks_user");
@@ -171,11 +199,63 @@ export default function DashboardLayout({ children, role, userEmail: propUserEma
           </div>
           
           <div className="flex items-center gap-6">
-            <button className="relative p-2 rounded-xl hover:bg-white/5 transition-all outline-none">
-              <Bell className="w-5 h-5 text-foreground/50" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-ping" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
-            </button>
+            <div className="relative" ref={notificationRef}>
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 rounded-xl hover:bg-white/5 transition-all outline-none"
+              >
+                <Bell className="w-5 h-5 text-foreground/50" />
+                {notifications.length > 0 && (
+                  <>
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-ping" />
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
+                  </>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 top-12 w-80 glass-dark border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                  >
+                    <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                      <h3 className="font-bold text-sm tracking-tight">Notifications</h3>
+                      {notifications.length > 0 && (
+                        <span className="text-[10px] font-bold bg-primary/20 text-primary px-2 py-1 rounded-full">{notifications.length} New</span>
+                      )}
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notif, idx) => (
+                          <div key={notif.id || idx} className="p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 bg-red-500/10 rounded-xl text-red-500 mt-1 group-hover:scale-110 transition-transform">
+                                <AlertTriangle className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-bold tracking-tight">{notif.type || 'System Alert'}</p>
+                                <p className="text-xs text-foreground/60 mt-1 line-clamp-2 leading-relaxed">{notif.description || 'New activity detected on the network.'}</p>
+                                <p className="text-[10px] font-bold text-foreground/30 mt-2 uppercase tracking-wider">{notif.createdAt ? new Date(notif.createdAt).toLocaleDateString() : 'Just now'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 flex flex-col items-center justify-center text-center text-sm text-foreground/50">
+                          <CheckCircle className="w-8 h-8 mb-3 opacity-20" />
+                          <p className="font-semibold">All caught up</p>
+                          <p className="text-xs opacity-50 mt-1">No new notifications at this time.</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <Link href={`/${role}/profile`} className="flex items-center gap-3 pl-2 lg:pl-6 border-l border-border hover:opacity-80 transition-opacity">
               <div className="text-right hidden md:block">
                 <p className="text-xs font-bold text-foreground uppercase">
