@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 // Initialize Supabase
 const supabase = createClient(
@@ -44,10 +48,39 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ Image saved. URL:", publicUrlData.publicUrl);
 
+    // AI Vision step: Generate description
+    let aiDescription = 'Automated image captured by hardware device, awaiting manual review.';
+    try {
+      console.log("🤖 Analyzing image with Gemini Vision...");
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      
+      const prompt = "You are an automated forensic analyzer for a women's safety platform. Briefly describe the scene in this image, noting the environment (e.g., indoor, outdoor, street, parking lot), lighting conditions, and any visible persons or potential threats. Keep it under 3 sentences.";
+      
+      const imageParts = [
+        {
+          inlineData: {
+            data: Buffer.from(imageBuffer).toString("base64"),
+            mimeType: "image/jpeg"
+          }
+        }
+      ];
+
+      const aiResponse = await model.generateContent([prompt, ...imageParts]);
+      const responseText = aiResponse.response.text().trim();
+      
+      if (responseText) {
+        aiDescription = responseText;
+        console.log("✅ AI Analysis Complete:", aiDescription);
+      }
+    } catch (aiError) {
+      console.error("❌ AI Vision Error:", aiError);
+      // Fallback is handled by the default value of aiDescription
+    }
+
     // 4. Save to the Database with ultra-safe default values
     const newReport = {
       type: 'Hardware SOS',
-      description: 'Automated panic alert triggered by IoT wearable.',
+      description: aiDescription,
       latitude: lat,
       longitude: lng,
       evidence: [publicUrlData.publicUrl], // Array format to match your JSONB schema
