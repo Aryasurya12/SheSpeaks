@@ -108,10 +108,11 @@ export default function DashboardLayout({ children, role, userEmail: propUserEma
       { href: "/user/map", icon: Map, label: "Safety Map" },
     ],
     admin: [
-      { href: "/admin/dashboard", icon: LayoutDashboard, label: "Overview" },
-      { href: "/admin/reports", icon: FileText, label: "All Reports" },
-      { href: "/admin/police", icon: Users, label: "Manage Police" },
-      { href: "/admin/analytics", icon: Activity, label: "Analytics" },
+      { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview' },
+      { href: '/admin/reports', icon: FileText, label: 'All Reports' },
+      { href: '/admin/iot', icon: Activity, label: 'IoT Feed' },
+      { href: '/admin/police', icon: Users, label: 'Manage Police' },
+      { href: '/admin/analytics', icon: Activity, label: 'Analytics' },
     ],
     police: [
       { href: "/police/dashboard", icon: LayoutDashboard, label: "Task List" },
