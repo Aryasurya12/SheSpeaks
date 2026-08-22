@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, ShieldCheck, MapPin, Clock, User, Phone, Mail, Camera, ExternalLink, ZoomIn } from "lucide-react";
+import { X, Download, ShieldCheck, MapPin, Clock, User, Phone, Mail, Camera, ExternalLink, ZoomIn, AlertTriangle } from "lucide-react";
 
 interface Report {
   id: string;
@@ -17,7 +17,7 @@ interface Report {
   phone?: string;
   userId?: string;
   anonymousMode?: boolean;
-  evidence?: string[];
+  evidence?: string[] | string;
   deviceId?: string;
   isIotTrigger?: boolean;
 }
@@ -29,11 +29,26 @@ interface ReportModalProps {
 
 export default function ReportModal({ report, onClose }: ReportModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   if (!report) return null;
 
+  // Normalize evidence array
+  let evidenceList: string[] = [];
+  if (Array.isArray(report.evidence)) {
+    evidenceList = report.evidence.filter(Boolean);
+  } else if (typeof report.evidence === 'string') {
+    try {
+      const parsed = JSON.parse(report.evidence);
+      evidenceList = Array.isArray(parsed) ? parsed.filter(Boolean) : [report.evidence];
+    } catch {
+      evidenceList = [report.evidence];
+    }
+  }
+
   const downloadPDF = async () => {
     try {
+      setIsGeneratingPdf(true);
       if (!report || !report.id) throw new Error("Invalid report data.");
 
       const { jsPDF } = await import("jspdf");
@@ -198,33 +213,38 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       doc.setFont("helvetica", "normal"); doc.text(latent, VALUE1_X, currentY);
       currentY += 12;
 
-      const evidence = report.evidence || [];
-      if (evidence.length > 0) {
-        checkPageOverflow(50);
-        for (let i = 0; i < Math.min(evidence.length, 3); i++) {
-          const img = evidence[i];
+      // Embed photographic evidence into PDF
+      if (evidenceList.length > 0) {
+        checkPageOverflow(65);
+        for (let i = 0; i < Math.min(evidenceList.length, 2); i++) {
+          const imgUrl = evidenceList[i];
           try {
-            let imgData = img;
-            // If it's a Supabase URL, fetch it and convert to Base64 since jsPDF needs base64
-            if (img.startsWith("http")) {
-              const response = await fetch(img);
-              const blob = await response.blob();
-              imgData = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(blob);
-              });
+            let base64Data = '';
+            if (imgUrl.startsWith('data:image')) {
+              base64Data = imgUrl;
+            } else {
+              // Fetch via server-side image proxy to completely avoid browser CORS restrictions
+              const proxyRes = await fetch(`/api/proxy-image?url=${encodeURIComponent(imgUrl)}`);
+              if (proxyRes.ok) {
+                const json = await proxyRes.json();
+                base64Data = json.dataUrl;
+              }
             }
-            if (imgData.startsWith("data:image")) {
-              doc.addImage(imgData, "JPEG", MARGIN + (i * 60), currentY, 55, 40);
+
+            if (base64Data) {
+              const imgFormat = base64Data.includes('image/png') ? 'PNG' : 'JPEG';
+              doc.addImage(base64Data, imgFormat, MARGIN + (i * 80), currentY, 75, 50);
+            } else {
+              doc.setFontSize(8);
+              doc.text(`[Evidence Photo Attached: ${imgUrl}]`, MARGIN + (i * 80), currentY + 10);
             }
           } catch (e) {
             console.error("Could not inject image into PDF:", e);
             doc.setFontSize(8);
-            doc.text("[External evidence link hidden for security]", MARGIN + (i * 60), currentY + 10);
+            doc.text(`[Evidence Photo: ${imgUrl}]`, MARGIN + (i * 80), currentY + 10);
           }
         }
-        currentY += 50;
+        currentY += 55;
       } else {
         doc.setFont("helvetica", "italic");
         doc.text("No photographic evidence attached.", MARGIN + 2, currentY);
@@ -245,11 +265,11 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       doc.save(`SheSpeaks_Official_${report.id}.pdf`);
     } catch (error) {
       console.error("PDF LAYOUT ERROR:", error);
-      alert("Layout Error: System could not align the report.");
+      alert("Layout Error: System could not generate the official report PDF.");
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
-
-  const evidenceList = report.evidence || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B0120]/80 backdrop-blur-sm">
@@ -297,37 +317,42 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
               </div>
             </div>
 
-            {/* Photographic Evidence Gallery */}
-            {evidenceList.length > 0 && (
-              <div className="p-6 rounded-2xl glass border border-amber-500/20 bg-amber-500/5 space-y-3">
+            {/* Photographic Evidence Gallery - Rendered Prominently */}
+            {evidenceList.length > 0 ? (
+              <div className="p-6 rounded-2xl glass border border-amber-500/30 bg-amber-500/5 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 flex items-center gap-2">
-                    <Camera className="w-3.5 h-3.5" /> Photographic Evidence ({evidenceList.length})
+                    <Camera className="w-4 h-4" /> Photographic Evidence ({evidenceList.length})
                   </p>
-                  <span className="text-[10px] font-bold text-amber-400/70 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
-                    IoT Camera Sensor
+                  <span className="text-[10px] font-bold text-amber-400/80 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">
+                    IoT Camera Sensor Snapshot
                   </span>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   {evidenceList.map((url, idx) => (
                     <div
                       key={idx}
-                      className="group relative rounded-xl overflow-hidden border border-white/10 bg-black/40 aspect-video cursor-pointer hover:border-primary/50 transition-all"
+                      className="group relative rounded-2xl overflow-hidden border border-white/10 bg-black/60 aspect-video cursor-pointer hover:border-amber-400/60 shadow-lg transition-all"
                       onClick={() => setSelectedImage(url)}
                     >
                       <img
                         src={url}
-                        alt={`Evidence ${idx + 1}`}
+                        alt={`IoT Evidence ${idx + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        crossOrigin="anonymous"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <ZoomIn className="w-5 h-5 text-white" />
-                        <span className="text-xs font-bold text-white uppercase tracking-wider">Expand</span>
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">Click to Expand</span>
                       </div>
                     </div>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl border border-white/5 bg-white/5 text-center text-xs text-foreground/40 italic">
+                No photographic evidence uploaded for this record.
               </div>
             )}
 
@@ -377,8 +402,12 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
         </div>
 
         <div className="p-6 border-t border-white/5 flex items-center justify-end gap-3">
-          <button onClick={downloadPDF} className="px-6 py-2 bg-primary/20 hover:bg-primary/30 text-primary font-black rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all">
-            <Download className="w-4 h-4" /> Download Official PDF
+          <button 
+            onClick={downloadPDF} 
+            disabled={isGeneratingPdf}
+            className="px-6 py-2 bg-primary/20 hover:bg-primary/30 text-primary font-black rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" /> {isGeneratingPdf ? "Generating PDF..." : "Download Official PDF"}
           </button>
         </div>
       </motion.div>
@@ -404,6 +433,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
                 src={selectedImage}
                 alt="Enlarged Evidence"
                 className="max-w-full max-h-[80vh] object-contain rounded-2xl border border-white/20 shadow-2xl"
+                crossOrigin="anonymous"
               />
               <div className="mt-3 flex items-center gap-4">
                 <a

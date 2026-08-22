@@ -16,29 +16,45 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     // Map database shape to frontend shape
-    const formattedReports = reports?.map(r => ({
-      id: r.id,
-      userId: r.user_id,
-      type: r.type,
-      description: r.description,
-      location: {
-        address: r.location_name,
-        lat: r.latitude,
-        lng: r.longitude
-      },
-      evidence: r.evidence || [],
-      status: r.status,
-      assignedTo: r.assigned_to,
-      createdAt: new Date(r.created_at).getTime(),
-      updatedAt: new Date(r.updated_at).getTime(),
-      name: r.reporter_name,
-      email: r.reporter_email,
-      phone: r.reporter_phone,
-      anonymousMode: r.is_anonymous !== null && r.is_anonymous !== undefined 
-        ? r.is_anonymous 
-        : (!r.reporter_name || r.reporter_name.startsWith('ANONYMOUS')),
-      statusHistory: r.status_history || []
-    })) || [];
+    const formattedReports = reports?.map(r => {
+      let evidenceList: string[] = [];
+      if (Array.isArray(r.evidence)) {
+        evidenceList = r.evidence.filter(Boolean);
+      } else if (typeof r.evidence === 'string') {
+        try {
+          const parsed = JSON.parse(r.evidence);
+          evidenceList = Array.isArray(parsed) ? parsed : [r.evidence];
+        } catch {
+          evidenceList = [r.evidence];
+        }
+      }
+
+      return {
+        id: r.id,
+        userId: r.user_id,
+        type: r.type,
+        description: r.description,
+        location: {
+          address: r.location_name,
+          lat: r.latitude,
+          lng: r.longitude
+        },
+        evidence: evidenceList,
+        deviceId: r.device_id,
+        isIotTrigger: r.is_iot_trigger,
+        status: r.status,
+        assignedTo: r.assigned_to,
+        createdAt: new Date(r.created_at).getTime(),
+        updatedAt: new Date(r.updated_at).getTime(),
+        name: r.reporter_name,
+        email: r.reporter_email,
+        phone: r.reporter_phone,
+        anonymousMode: r.is_anonymous !== null && r.is_anonymous !== undefined 
+          ? r.is_anonymous 
+          : (!r.reporter_name || r.reporter_name.startsWith('ANONYMOUS')),
+        statusHistory: r.status_history || []
+      };
+    }) || [];
     
     return NextResponse.json(formattedReports);
   } catch (error: any) {
