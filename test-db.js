@@ -1,29 +1,27 @@
-require('dotenv').config({ path: '.env.local' });
+const fs = require('fs');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+const envContent = fs.readFileSync(path.resolve('.env.local'), 'utf8');
+let url = '', key = '';
+envContent.split(/\r?\n/).forEach(line => {
+  if (line.startsWith('NEXT_PUBLIC_SUPABASE_URL=')) url = line.split('=')[1].trim().replace(/['"]/g, '');
+  if (line.startsWith('NEXT_PUBLIC_SUPABASE_ANON_KEY=')) key = line.split('=')[1].trim().replace(/['"]/g, '');
+});
+
+const supabase = createClient(url, key);
 
 async function testInsert() {
-  console.log("Testing Supabase insert...");
+  console.log("Checking reports table...");
   const { data, error } = await supabase
-    .from('profiles')
-    .insert([
-      {
-        id: crypto.randomUUID(),
-        full_name: "Test User",
-        phone: null,
-        role: 'user', // Trying 'user'
-        anonymous_id: "ANON-12345"
-      }
-    ]);
+    .from('reports')
+    .select('id, status, description, type')
+    .limit(10);
 
   if (error) {
-    console.error("Error inserting:", error);
+    console.error("Error fetching reports:", error);
   } else {
-    console.log("Success:", data);
+    console.log("Existing reports:", data);
   }
 }
 

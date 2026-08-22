@@ -17,7 +17,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // ---------------------------------------------------------------------------
 
 /** Status enum matching the Supabase `status` column */
-export type ReportStatus = 'pending' | 'sent' | 'resolved'
+export type ReportStatus = 'pending' | 'in-progress' | 'resolved'
 
 /**
  * Row shape returned when reading from the `reports` table.

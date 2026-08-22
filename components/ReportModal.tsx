@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { X, Download, ShieldCheck, MapPin, Clock, User, Phone, Mail } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Download, ShieldCheck, MapPin, Clock, User, Phone, Mail, Camera, ExternalLink, ZoomIn } from "lucide-react";
 
 interface Report {
   id: string;
@@ -16,6 +17,9 @@ interface Report {
   phone?: string;
   userId?: string;
   anonymousMode?: boolean;
+  evidence?: string[];
+  deviceId?: string;
+  isIotTrigger?: boolean;
 }
 
 interface ReportModalProps {
@@ -24,6 +28,8 @@ interface ReportModalProps {
 }
 
 export default function ReportModal({ report, onClose }: ReportModalProps) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   if (!report) return null;
 
   const downloadPDF = async () => {
@@ -162,10 +168,10 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
         doc.setFont("helvetica", "normal"); doc.text(report.email || "N/A", VALUE1_X, currentY);
       } else {
         doc.setFont("helvetica", "italic");
-        doc.text("ANONYMOUS FILING: Verified identity protection via secure user hash.", COL1_X + 2, currentY);
+        doc.text("ANONYMOUS / IOT FILING: Verified device identity protection.", COL1_X + 2, currentY);
         currentY += 7;
-        doc.setFont("helvetica", "bold"); doc.text("Secure Hash:", COL1_X + 2, currentY);
-        doc.setFont("helvetica", "normal"); doc.text(report.userId || "ANON-DATA", VALUE1_X, currentY);
+        doc.setFont("helvetica", "bold"); doc.text("Device / Secure ID:", COL1_X + 2, currentY);
+        doc.setFont("helvetica", "normal"); doc.text(report.deviceId || report.userId || "IOT-DEVICE", VALUE1_X, currentY);
       }
       currentY += 15;
 
@@ -182,8 +188,8 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       // SECTION 4: LOCATION & EVIDENCE
       drawSectionTitle("4. Location Tracking & Evidence");
       const loc = report.location;
-      const addr = typeof loc === 'object' ? (loc.address || "Current Position") : String(loc || "Unknown");
-      const latent = typeof loc === 'object' ? `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}` : "N/A";
+      const addr = typeof loc === 'object' && loc !== null ? (loc.address || "Current Position") : String(loc || "Unknown");
+      const latent = typeof loc === 'object' && loc !== null && loc.lat !== undefined ? `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}` : "N/A";
 
       doc.setFont("helvetica", "bold"); doc.text("Address:", COL1_X + 2, currentY);
       doc.setFont("helvetica", "normal"); doc.text(addr, VALUE1_X, currentY);
@@ -192,7 +198,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
       doc.setFont("helvetica", "normal"); doc.text(latent, VALUE1_X, currentY);
       currentY += 12;
 
-      const evidence = (report as any).evidence || [];
+      const evidence = report.evidence || [];
       if (evidence.length > 0) {
         checkPageOverflow(50);
         for (let i = 0; i < Math.min(evidence.length, 3); i++) {
@@ -243,6 +249,7 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
     }
   };
 
+  const evidenceList = report.evidence || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B0120]/80 backdrop-blur-sm">
@@ -250,21 +257,26 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="glass-dark border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative"
+        className="w-full max-w-2xl bg-card border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
       >
-        <div className="flex items-center justify-between p-6 border-b border-white/5">
-          <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-3">
-            <ShieldCheck className="w-6 h-6" /> Incident Details
-          </h2>
+        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black tracking-tight">{report.type}</h2>
+              <p className="text-xs text-foreground/40 font-mono">{report.id}</p>
+            </div>
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
-            <X className="w-5 h-5 text-foreground/50" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto p-8">
-          <div id="pdf-report" className="space-y-8">
-            {/* Header Info */}
-            <div className="grid grid-cols-2 gap-6 pb-6 border-b border-white/5">
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Report ID</p>
                 <p className="text-lg font-mono text-primary font-bold">{report.id}</p>
@@ -285,9 +297,43 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
               </div>
             </div>
 
-            {/* Personal Info if available */}
+            {/* Photographic Evidence Gallery */}
+            {evidenceList.length > 0 && (
+              <div className="p-6 rounded-2xl glass border border-amber-500/20 bg-amber-500/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 flex items-center gap-2">
+                    <Camera className="w-3.5 h-3.5" /> Photographic Evidence ({evidenceList.length})
+                  </p>
+                  <span className="text-[10px] font-bold text-amber-400/70 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                    IoT Camera Sensor
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  {evidenceList.map((url, idx) => (
+                    <div
+                      key={idx}
+                      className="group relative rounded-xl overflow-hidden border border-white/10 bg-black/40 aspect-video cursor-pointer hover:border-primary/50 transition-all"
+                      onClick={() => setSelectedImage(url)}
+                    >
+                      <img
+                        src={url}
+                        alt={`Evidence ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <ZoomIn className="w-5 h-5 text-white" />
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">Expand</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Personal / Device Info */}
             <div className="p-6 rounded-2xl glass border border-primary/20 bg-primary/5">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4">Involved Party / Victim</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4">Involved Party / Device</p>
               {!(report.anonymousMode ?? (!report.name || report.name.startsWith("ANONYMOUS"))) && report.name ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -305,8 +351,12 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
                 </div>
               ) : (
                 <div className="flex items-center gap-4">
-                  <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-foreground/40">Anonymous Mode</span>
-                  <p className="font-mono text-sm text-foreground/50">Secure ID: <span className="text-primary/70">{report.userId}</span></p>
+                  <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-foreground/40">
+                    {report.deviceId ? "IoT Sensor Device" : "Anonymous Mode"}
+                  </span>
+                  <p className="font-mono text-sm text-foreground/50">
+                    ID: <span className="text-primary/70">{report.deviceId || report.userId || "IOT-CAM-01"}</span>
+                  </p>
                 </div>
               )}
             </div>
@@ -321,17 +371,55 @@ export default function ReportModal({ report, onClose }: ReportModalProps) {
 
             <div className="space-y-3">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Assigned Resources</p>
-              <p className="font-bold text-sm">{report.assignedTo || "Unassigned"}</p>
+              <p className="font-bold text-sm">{report.assignedTo || "Unassigned / Jurisdiction Broadcast"}</p>
             </div>
           </div>
         </div>
 
-        <div className="p-6 border-t border-white/5 flex items-center justify-end">
+        <div className="p-6 border-t border-white/5 flex items-center justify-end gap-3">
           <button onClick={downloadPDF} className="px-6 py-2 bg-primary/20 hover:bg-primary/30 text-primary font-black rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 transition-all">
             <Download className="w-4 h-4" /> Download Official PDF
           </button>
         </div>
       </motion.div>
+
+      {/* Fullscreen Image Lightbox Modal */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div className="relative max-w-4xl max-h-[85vh] w-full p-2 flex flex-col items-center">
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={selectedImage}
+                alt="Enlarged Evidence"
+                className="max-w-full max-h-[80vh] object-contain rounded-2xl border border-white/20 shadow-2xl"
+              />
+              <div className="mt-3 flex items-center gap-4">
+                <a
+                  href={selectedImage}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
+                </a>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

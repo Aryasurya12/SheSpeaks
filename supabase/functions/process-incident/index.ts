@@ -71,12 +71,12 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // -----------------------------------------------------------------------
-    // 3. Update the report: status → "sent", description updated
+    // 3. Update the report: status → "in-progress", description updated
     // -----------------------------------------------------------------------
     const { data: updatedReport, error: updateError } = await supabase
       .from('reports')
       .update({
-        status: 'sent',
+        status: 'in-progress',
         description: 'Emergency detected via IoT device',
       })
       .eq('id', report_id)
