@@ -1,10 +1,10 @@
 /**
  * ============================================================================
- * SheSpeaks - ESP32-CAM Harassment Incident Reporter
+ * SheSpeaks - ESP32-CAM Harassment Incident Reporter (Cloud & Local Ready)
  * ============================================================================
  * Hardware: AI-Thinker ESP32-CAM module
  * Trigger: Push Button / PIR Sensor connected to GPIO 13 (or GPIO 12/14)
- * Action: Captures JPEG frame from OV2640 camera, connects to WiFi, and HTTP POSTs
+ * Action: Captures JPEG frame from OV2640 camera, connects to WiFi, and HTTP/HTTPS POSTs
  *         raw binary image to /api/hardware endpoint with GPS coords & device ID.
  * ============================================================================
  */
@@ -12,6 +12,7 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 // ----------------------------------------------------------------------------
 // 1. WiFi & Server Configuration
@@ -19,18 +20,19 @@
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-// Replace with your local machine IP or deployed domain
-// Example: "http://192.168.1.100:3000/api/hardware"
-const char* SERVER_URL    = "http://YOUR_SERVER_IP:3000/api/hardware";
+// Hosted Cloud or Local Endpoint:
+// Example for Hosted: "https://your-app-name.vercel.app/api/hardware"
+// Example for Local:  "http://192.168.1.100:3000/api/hardware"
+const char* SERVER_URL    = "https://YOUR_HOSTED_DOMAIN.vercel.app/api/hardware";
 
-// Hardware Identification & GPS Coordinates (can be updated via GPS module or hardcoded)
+// Hardware Identification & GPS Coordinates
 const char* DEVICE_ID     = "ESP32-CAM-SECTOR-09";
 const float LATITUDE      = 19.0760; // Example: Mumbai
 const float LONGITUDE     = 72.8777;
 
 // Trigger Pin (PIR sensor or panic button, active LOW with internal pull-up)
 #define TRIGGER_PIN 13
-#define FLASH_LED_PIN 4 // Built-in high brightness LED on ESP32-CAM
+#define FLASH_LED_PIN 4 // Built-in flash LED on ESP32-CAM
 
 // ----------------------------------------------------------------------------
 // 2. Camera Pin Definitions (AI-Thinker Model)
@@ -53,7 +55,6 @@ const float LONGITUDE     = 72.8777;
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-// Cooldown tracking (in addition to server-side rate limiter)
 unsigned long lastTriggerTime = 0;
 const unsigned long LOCAL_COOLDOWN_MS = 10000; // 10 seconds
 
@@ -80,10 +81,9 @@ void setupCamera() {
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
 
-  // Frame size & quality
   if (psramFound()) {
     config.frame_size = FRAMESIZE_VGA; // 640x480
-    config.jpeg_quality = 10;          // 10-63 (lower means higher quality)
+    config.jpeg_quality = 10;          // 10-63
     config.fb_count = 2;
   } else {
     config.frame_size = FRAMESIZE_QVGA; // 320x240
@@ -127,15 +127,13 @@ void captureAndSendReport() {
     return;
   }
 
-  // Turn on flash briefly
+  // Flash LED briefly
   pinMode(FLASH_LED_PIN, OUTPUT);
   digitalWrite(FLASH_LED_PIN, HIGH);
   delay(100);
 
   Serial.println("📸 Capturing photo frame...");
   camera_fb_t * fb = esp_camera_fb_get();
-  
-  // Turn off flash
   digitalWrite(FLASH_LED_PIN, LOW);
 
   if (!fb) {
@@ -149,12 +147,23 @@ void captureAndSendReport() {
   String url = String(SERVER_URL) + "?lat=" + String(LATITUDE, 6) + "&lng=" + String(LONGITUDE, 6) + "&deviceId=" + String(DEVICE_ID);
 
   HTTPClient http;
-  http.begin(url);
+  bool isHttps = url.startsWith("https://");
+
+  if (isHttps) {
+    // WiFiClientSecure with SSL certificate validation bypassed (required for cloud endpoints like Vercel/Render)
+    WiFiClientSecure secureClient;
+    secureClient.setInsecure();
+    http.begin(secureClient, url);
+  } else {
+    WiFiClient client;
+    http.begin(client, url);
+  }
+
   http.addHeader("Content-Type", "image/jpeg");
   http.addHeader("x-device-id", DEVICE_ID);
-  http.setTimeout(15000); // 15 second timeout
+  http.setTimeout(20000); // 20 second timeout
 
-  Serial.println("📤 Sending image to SheSpeaks Police Pipeline...");
+  Serial.printf("📤 Sending image to SheSpeaks Pipeline (%s)...\n", isHttps ? "HTTPS" : "HTTP");
   int httpResponseCode = http.POST(fb->buf, fb->len);
 
   if (httpResponseCode > 0) {
@@ -190,7 +199,6 @@ void setup() {
 }
 
 void loop() {
-  // Check if sensor is triggered (Active LOW)
   if (digitalRead(TRIGGER_PIN) == LOW) {
     unsigned long now = millis();
     if (now - lastTriggerTime > LOCAL_COOLDOWN_MS) {
